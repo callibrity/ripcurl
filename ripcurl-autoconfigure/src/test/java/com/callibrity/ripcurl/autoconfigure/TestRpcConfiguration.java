@@ -15,7 +15,6 @@
  */
 package com.callibrity.ripcurl.autoconfigure;
 
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProvider;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.fasterxml.jackson.databind.ObjectMapper;

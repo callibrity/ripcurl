@@ -71,6 +71,10 @@ class JsonMethodInvokerTest {
         public String jsonRpcException(String input) {
             throw new JsonRpcInvalidParamsException("I don't like you!");
         }
+
+        private String hidden(String input) {
+            return "nope";
+        }
     }
 
     @Test
@@ -228,5 +232,19 @@ class JsonMethodInvokerTest {
         assertThatThrownBy(() -> invoker.invoke(params))
                 .isExactlyInstanceOf(JsonRpcInvalidParamsException.class)
                 .hasMessage("I don't like you!");
+    }
+
+    @Test
+    void testInvokeWithPrivateMethod() throws Exception {
+        DummyService service = new DummyService();
+        Method method = DummyService.class.getDeclaredMethod("hidden", String.class);
+        JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
+
+        var params = JsonNodeFactory.instance.objectNode();
+        params.put("input", "test");
+
+        assertThatThrownBy(() -> invoker.invoke(params))
+                .isExactlyInstanceOf(JsonRpcInternalErrorException.class)
+                .hasMessageContaining("Method invocation failed");
     }
 }
