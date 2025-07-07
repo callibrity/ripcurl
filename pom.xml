@@ -1,3 +1,20 @@
+<!--
+
+    Copyright © 2025 Callibrity, Inc. (contactus@callibrity.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -9,11 +26,13 @@
     <description>A JSON-RPC Framework for Spring Boot 3</description>
 
     <url>https://github.com/callibrity/ripcurl</url>
+    <inceptionYear>2025</inceptionYear>
 
     <developers>
         <developer>
             <id>jwcarman</id>
             <name>James Carman</name>
+            <email>jcarman@callibrity.com</email>
         </developer>
     </developers>
 
@@ -40,22 +59,23 @@
 
     <properties>
         <java.version>24</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.parameters>true</maven.compiler.parameters>
+        <sonar.organization>callibrity</sonar.organization>
 
+        <!-- Dependency Versions -->
         <spring.boot.version>3.5.3</spring.boot.version>
 
-        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-
+        <!-- Plugin Versions -->
         <gpg.plugin.version>3.2.7</gpg.plugin.version>
         <jacoco.plugin.version>0.8.13</jacoco.plugin.version>
         <javadoc.plugin.version>3.11.1</javadoc.plugin.version>
+        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <sonatype.plugin.version>0.6.0</sonatype.plugin.version>
         <source.plugin.version>3.3.1</source.plugin.version>
         <surefire.plugin.version>3.5.2</surefire.plugin.version>
-
-        <sonar.organization>callibrity</sonar.organization>
     </properties>
 
     <build>
@@ -176,6 +196,54 @@
                             </gpgArguments>
                         </configuration>
                     </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>license</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>5.0.0</version>
+                        <configuration>
+                            <properties>
+                                <owner>Callibrity, Inc.</owner>
+                                <email>contactus@callibrity.com</email>
+                            </properties>
+                            <licenseSets>
+                                <licenseSet>
+                                    <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+<!--                                    <inlineHeader>-->
+<!--                                        &lt;!&ndash; @formatter:off &ndash;&gt;-->
+<!--Copyright ${year} - ${owner}.-->
+<!--Licensed under the Apache License, Version 2.0 (the-->
+<!--"License"); you may not use this file except in compliance-->
+<!--with the License. You may obtain a copy of the License at-->
+<!--https://www.apache.org/licenses/LICENSE-2.0 Unless required-->
+<!--by applicable law or agreed to in writing, software-->
+<!--distributed under the License is distributed on an "AS IS"-->
+<!--BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either-->
+<!--express or implied. See the License for the specific-->
+<!--language governing permissions and limitations under the-->
+<!--License.-->
+<!--                                        &lt;!&ndash; @formatter:on &ndash;&gt;-->
+<!--                                    </inlineHeader>-->
+
+                                    <excludes>
+                                        <exclude>**/README</exclude>
+                                        <exclude>src/test/resources/**</exclude>
+                                        <exclude>src/main/resources/**</exclude>
+                                    </excludes>
+                                </licenseSet>
+                            </licenseSets>
+                        </configuration>
+                    </plugin>
+
                 </plugins>
             </build>
         </profile>
