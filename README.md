@@ -25,3 +25,59 @@ RipCurl includes a Spring Boot starter, making it easy to get started by simply 
     <version>${ripcurl.version}</version>
 </dependency>
 ```
+
+By default RipCurl will listen for JSON-RPC requests on the `/jsonrpc` endpoint. You can change this by setting the `ripcurl.endpoint` property in your `application.properties` or `application.yml` file:
+
+```properties
+ripcurl.endpoint=/your-custom-endpoint
+```
+
+## Using RipCurl
+
+To use RipCurl, you need to annotate a bean method with `@JsonRpc`:
+
+```java
+import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import org.springframework.stereotype.Component;
+
+@Component
+public class HelloRpc {
+
+    @JsonRpc("hello")
+    public String sayHello(String name) {
+        return String.format("Hello, %s!", name);
+    }
+}
+```
+
+This bean needs to be registered with RipCurl's `JsonRpcService` by exposing it using a `JsonRpcMethodHandler` bean:
+
+```java
+@Bean
+public JsonRpcMethodHandlerProvider hellpProvider(ObjectMapper mapper, HelloRpc helloRpc) {
+    return new AnnotationJsonRpcMethodProvider(mapper, helloRpc);
+}
+```
+
+You can then send a JSON-RPC request to the `/jsonrpc` endpoint with the following payload:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "12345",
+  "method": "hello",
+  "params": {
+    "name": "RipCurl"
+  }
+}
+```
+
+The response will be:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "12345",
+  "result": "Hello, RipCurl!"
+}
+```
