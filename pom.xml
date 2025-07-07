@@ -101,6 +101,7 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <argLine>
+                        ${argLine}
                         -javaagent:${org.mockito:mockito-core:jar}
                         -javaagent:${net.bytebuddy:byte-buddy-agent:jar}
                         -Xshare:off
@@ -113,6 +114,7 @@
                 <version>${maven-failsafe-plugin.version}</version>
                 <configuration>
                     <argLine>
+                        ${argLine}
                         -javaagent:${org.mockito:mockito-core:jar}
                         -javaagent:${net.bytebuddy:byte-buddy-agent:jar}
                         -Xshare:off
