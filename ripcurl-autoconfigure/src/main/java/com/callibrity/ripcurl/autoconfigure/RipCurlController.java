@@ -7,7 +7,6 @@ import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidRequestException;
 import com.callibrity.ripcurl.core.exception.JsonRpcMethodNotFoundException;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RipCurlController {
 
     public static final String JSON_RPC_ID_ATTR = "JSON_RPC_ID";
+    public static final String JACKSON_CLUTTER = "Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); ";
     private final JsonRpcService jsonRpcService;
 
     public RipCurlController(JsonRpcService jsonRpcService) {
@@ -60,7 +60,7 @@ public class RipCurlController {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<JsonRpcErrorResponse> handleMethodNotFound(HttpMessageNotReadableException ex, HttpServletRequest httpRequest) {
-        var error = new JsonRpcError(-32700, "Parse error", StringUtils.remove(ex.getMostSpecificCause().getMessage(), "Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); "));
+        var error = new JsonRpcError(-32700, "Parse error", StringUtils.remove(ex.getMostSpecificCause().getMessage(), JACKSON_CLUTTER));
         return ResponseEntity.ok(new JsonRpcErrorResponse("2.0", error, (JsonNode) httpRequest.getAttribute(JSON_RPC_ID_ATTR)));
     }
 
