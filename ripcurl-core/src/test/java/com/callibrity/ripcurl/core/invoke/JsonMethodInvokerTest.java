@@ -22,17 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class JsonMethodInvokerTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public static abstract class EchcService<T> {
+    public abstract static class EchoService<T> {
         public T echo(T original) {
             return original;
         }
     }
 
-    public static class StringEchoService extends EchcService<String> {
+    public static class StringEchoService extends EchoService<String> {
 
     }
 
-    public static class IntegerEchoService extends EchcService<Integer> {
+    public static class IntegerEchoService extends EchoService<Integer> {
 
     }
 
@@ -46,6 +46,7 @@ class JsonMethodInvokerTest {
         }
 
         public void doNothingPrimitive() {
+            // Do nothing
         }
 
         public Void doNothingObject() {
@@ -58,7 +59,7 @@ class JsonMethodInvokerTest {
     }
 
     @Test
-    void testInvokeMethodWithTypeParameters() throws Exception {
+    void testInvokeMethodWithTypeParameters() {
         var service = new StringEchoService();
         var method = MethodUtils.getMatchingMethod(StringEchoService.class, "echo", String.class);
         var invoker = new JsonMethodInvoker(mapper, service, method);
