@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("${ripcurl.endpoint:/jsonrpc}")
 public class RipCurlController {
 
-    public static final String JSON_RPC_ID_ATTR = "JSON_RPC_ID";
+    public static final String JSON_RPC_ID_ATTR = RipCurlController.class.getName() + ".JSON_RPC_ID";
     public static final String JACKSON_CLUTTER = "Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); ";
     private final JsonRpcService jsonRpcService;
 
@@ -74,7 +74,7 @@ public class RipCurlController {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<JsonRpcErrorResponse> handleMethodNotFound(HttpMessageNotReadableException ex, HttpServletRequest httpRequest) {
+    public ResponseEntity<JsonRpcErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest httpRequest) {
         var error = new JsonRpcError(-32700, "Parse error", StringUtils.remove(ex.getMostSpecificCause().getMessage(), JACKSON_CLUTTER));
         return ResponseEntity.ok(new JsonRpcErrorResponse("2.0", error, (JsonNode) httpRequest.getAttribute(JSON_RPC_ID_ATTR)));
     }
@@ -82,7 +82,7 @@ public class RipCurlController {
     @ExceptionHandler(JsonRpcInternalErrorException.class)
     public ResponseEntity<JsonRpcErrorResponse> handleInternalError(JsonRpcInternalErrorException ex, HttpServletRequest httpRequest) {
         var id = (JsonNode) httpRequest.getAttribute(JSON_RPC_ID_ATTR);
-        if (id == null || id.isNull()) {
+        if (id == null) {
             return ResponseEntity.noContent().build();
         }
         var error = new JsonRpcError(-32603, "Internal error", ex.getMessage());

@@ -28,6 +28,12 @@
     <description>Spring Boot AutoConfiguration for RipCurl</description>
     <dependencies>
         <dependency>
+            <groupId>com.callibrity.ripcurl</groupId>
+            <artifactId>ripcurl-core</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
@@ -39,10 +45,17 @@
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>com.callibrity.ripcurl</groupId>
-            <artifactId>ripcurl-core</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test-autoconfigure</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>
