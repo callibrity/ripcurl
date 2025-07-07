@@ -5,6 +5,8 @@
     <artifactId>ripcurl</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <name>RipCurl</name>
+    <description>A JSON-RPC Framework for Spring Boot 3</description>
 
     <url>https://github.com/callibrity/ripcurl</url>
 

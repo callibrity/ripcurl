@@ -7,7 +7,8 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-
+    <name>RipCurl - Spring Boot Starter</name>
+    <description>A Spring Boot Starter for RipCurl</description>
     <dependencies>
         <dependency>
             <groupId>com.callibrity.ripcurl</groupId>

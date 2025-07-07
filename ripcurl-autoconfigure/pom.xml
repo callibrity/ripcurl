@@ -7,6 +7,8 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ripcurl-autoconfigure</artifactId>
+    <name>RipCurl - AutoConfiguration</name>
+    <description>Spring Boot AutoConfiguration for RipCurl</description>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
