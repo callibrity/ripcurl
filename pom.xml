@@ -54,6 +54,8 @@
         <sonatype.plugin.version>0.6.0</sonatype.plugin.version>
         <source.plugin.version>3.3.1</source.plugin.version>
         <surefire.plugin.version>3.5.2</surefire.plugin.version>
+
+        <sonar.organization>callibrity</sonar.organization>
     </properties>
 
     <build>
