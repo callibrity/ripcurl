@@ -55,6 +55,7 @@
         <module>ripcurl-core</module>
         <module>ripcurl-autoconfigure</module>
         <module>ripcurl-spring-boot-starter</module>
+        <module>ripcurl-coverage</module>
     </modules>
 
     <properties>
@@ -64,7 +65,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <sonar.organization>callibrity</sonar.organization>
-
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/ripcurl-coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <!-- Dependency Versions -->
         <spring.boot.version>${maven-failsafe-plugin.version}</spring.boot.version>
 
@@ -126,7 +127,11 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                 </plugin>
-
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.plugin.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
@@ -185,7 +190,6 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>${jacoco.plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>
