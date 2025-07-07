@@ -6,6 +6,30 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <url>https://github.com/callibrity/ripcurl</url>
+
+    <developers>
+        <developer>
+            <id>callibrity</id>
+            <name>James Carman</name>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache 2</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>A business-friendly OSS license</comments>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/callibrity/ripcurl</url>
+        <connection>scm:git:git@github.com:callibrity/ripcurl.git</connection>
+        <developerConnection>scm:git:git@github.com:callibrity/ripcurl.git</developerConnection>
+    </scm>
+
     <modules>
         <module>ripcurl-core</module>
         <module>ripcurl-autoconfigure</module>
