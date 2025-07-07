@@ -46,7 +46,6 @@ public class JsonMethodInvoker {
             return mapper.valueToTree(result);
         } catch (InvocationTargetException e) {
             if(e.getTargetException() instanceof JsonRpcException re) {
-                System.out.println("Rethrowing " + re.getClass().getSimpleName() + "...");
                 throw re;
             }
             throw new JsonRpcInternalErrorException(String.format("Method invocation failed for method %s.", method), e);
