@@ -43,11 +43,13 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.parameters>true</maven.compiler.parameters>
-        <maven.compiler.enablePreview>true</maven.compiler.enablePreview>
+
         <spring.boot.version>3.5.3</spring.boot.version>
-        <jacoco.version>0.8.13</jacoco.version>
+
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+
         <gpg.plugin.version>3.2.7</gpg.plugin.version>
+        <jacoco.plugin.version>0.8.13</jacoco.plugin.version>
         <javadoc.plugin.version>3.11.1</javadoc.plugin.version>
         <sonatype.plugin.version>0.6.0</sonatype.plugin.version>
         <source.plugin.version>3.3.1</source.plugin.version>
@@ -85,7 +87,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>${jacoco.version}</version>
+                        <version>${jacoco.plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>
