@@ -1,10 +1,10 @@
 package com.callibrity.ripcurl.autoconfigure;
 
-import com.ripcurl.core.JsonRpcService;
-import com.ripcurl.core.def.DefaultJsonRpcMethodProvider;
-import com.ripcurl.core.def.DefaultJsonRpcService;
-import com.ripcurl.core.spi.JsonRpcMethodHandler;
-import com.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+import com.callibrity.ripcurl.core.JsonRpcService;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcMethodProvider;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcService;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 

@@ -1,7 +1,8 @@
 package com.callibrity.ripcurl.core.def;
 
-import com.ripcurl.core.spi.JsonRpcMethodHandler;
-import com.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 
 import java.util.List;
 

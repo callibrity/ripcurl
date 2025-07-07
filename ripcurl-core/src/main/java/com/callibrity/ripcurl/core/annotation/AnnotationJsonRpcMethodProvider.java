@@ -1,8 +1,8 @@
 package com.callibrity.ripcurl.core.annotation;
 
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ripcurl.core.spi.JsonRpcMethodHandler;
-import com.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 
 import java.util.Arrays;
 import java.util.List;

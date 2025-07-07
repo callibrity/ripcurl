@@ -1,13 +1,13 @@
 package com.callibrity.ripcurl.autoconfigure;
 
+import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcService;
+import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
+import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
+import com.callibrity.ripcurl.core.exception.JsonRpcInvalidRequestException;
+import com.callibrity.ripcurl.core.exception.JsonRpcMethodNotFoundException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.ripcurl.core.JsonRpcRequest;
-import com.ripcurl.core.JsonRpcResponse;
-import com.ripcurl.core.JsonRpcService;
-import com.ripcurl.core.exception.JsonRpcInternalErrorException;
-import com.ripcurl.core.exception.JsonRpcInvalidParamsException;
-import com.ripcurl.core.exception.JsonRpcInvalidRequestException;
-import com.ripcurl.core.exception.JsonRpcMethodNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
