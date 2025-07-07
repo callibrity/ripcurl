@@ -60,8 +60,8 @@ public class JsonMethodInvoker {
             }
             return mapper.valueToTree(result);
         } catch (InvocationTargetException e) {
-            if(e.getTargetException() instanceof JsonRpcException re) {
-                throw re;
+            if(e.getTargetException() instanceof JsonRpcException jre) {
+                throw jre;
             }
             throw new JsonRpcInternalErrorException(String.format("Method invocation failed for method %s.", method), e);
         } catch(ReflectiveOperationException e) {

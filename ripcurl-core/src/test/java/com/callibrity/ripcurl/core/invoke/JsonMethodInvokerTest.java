@@ -47,10 +47,6 @@ class JsonMethodInvokerTest {
 
     }
 
-    public static class IntegerEchoService extends EchoService<Integer> {
-
-    }
-
     static class DummyService {
         public String echo(String input) {
             return input;
@@ -70,6 +66,10 @@ class JsonMethodInvokerTest {
 
         public String evilMethod(String input) {
             throw new IllegalArgumentException(String.format("Invalid input: %s", input));
+        }
+
+        public String jsonRpcException(String input) {
+            throw new JsonRpcInvalidParamsException("I don't like you!");
         }
     }
 
@@ -216,5 +216,17 @@ class JsonMethodInvokerTest {
         JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
         JsonNode result = invoker.invoke(null);
         assertTrue(result.isNull());
+    }
+
+    @Test
+    void methodThrowingJsonRpcExceptionShouldPropagate() throws Exception {
+        DummyService service = new DummyService();
+        Method method = DummyService.class.getMethod("jsonRpcException", String.class);
+        JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
+        var params = JsonNodeFactory.instance.objectNode();
+        params.put("input", "Hello");
+        assertThatThrownBy(() -> invoker.invoke(params))
+                .isExactlyInstanceOf(JsonRpcInvalidParamsException.class)
+                .hasMessage("I don't like you!");
     }
 }

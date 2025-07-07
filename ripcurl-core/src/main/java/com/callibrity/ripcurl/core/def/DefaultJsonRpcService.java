@@ -66,7 +66,7 @@ public class DefaultJsonRpcService implements JsonRpcService {
                 .map(m -> m.call(request.params()))
                 .orElseThrow(() -> new JsonRpcMethodNotFoundException(request.method()));
 
-        if (request.id() == null || request.id().isNull()) {
+        if (request.id() == null) {
             return null;
         }
         return new JsonRpcResponse(VALID_JSONRPC_VERSION, result, request.id());
