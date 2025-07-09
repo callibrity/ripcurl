@@ -16,10 +16,13 @@
 package com.callibrity.ripcurl.autoconfigure;
 
 import com.callibrity.ripcurl.core.JsonRpcService;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
+import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodHandlerProviderFactory;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcMethodProvider;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcService;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
@@ -38,6 +41,11 @@ public class RipCurlAutoConfiguration {
     @Bean
     public JsonRpcService defaultJsonRpcService(List<JsonRpcMethodHandlerProvider> providers) {
         return new DefaultJsonRpcService(providers);
+    }
+
+    @Bean
+    public AnnotationJsonRpcMethodHandlerProviderFactory annotationJsonRpcMethodHandlerProviderFactory(ObjectMapper objectMapper) {
+        return new DefaultAnnotationJsonRpcMethodHandlerProviderFactory(objectMapper);
     }
 
     @Bean

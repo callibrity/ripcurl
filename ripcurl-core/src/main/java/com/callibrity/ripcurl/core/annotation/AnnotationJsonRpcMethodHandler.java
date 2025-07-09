@@ -26,7 +26,7 @@ import java.lang.reflect.Method;
 
 import static java.util.Optional.ofNullable;
 
-public class AnnotationJsonRpcMethodHandler implements JsonRpcMethodHandler {
+class AnnotationJsonRpcMethodHandler implements JsonRpcMethodHandler {
 
 // ------------------------------ FIELDS ------------------------------
 
@@ -38,8 +38,7 @@ public class AnnotationJsonRpcMethodHandler implements JsonRpcMethodHandler {
     AnnotationJsonRpcMethodHandler(ObjectMapper mapper, Object targetObject, Method method) {
         this.invoker = new JsonMethodInvoker(mapper, targetObject, method);
         var annotation = method.getAnnotation(JsonRpc.class);
-        this.name = ofNullable(annotation.value())
-                .map(StringUtils::stripToNull)
+        this.name = ofNullable(StringUtils.trimToNull(annotation.value()))
                 .orElseGet(() -> String.format("%s.%s", ClassUtils.getSimpleName(targetObject), method.getName()));
     }
 

@@ -54,8 +54,8 @@ This bean needs to be registered with RipCurl's `JsonRpcService` by exposing it 
 
 ```java
 @Bean
-public JsonRpcMethodHandlerProvider hellpProvider(ObjectMapper mapper, HelloRpc helloRpc) {
-    return new AnnotationJsonRpcMethodProvider(mapper, helloRpc);
+public JsonRpcMethodHandlerProvider hellpProvider(AnnotationJsonRpcMethodProviderFactory factory, HelloRpc helloRpc) {
+    return factory.create(helloRpc);
 }
 ```
 

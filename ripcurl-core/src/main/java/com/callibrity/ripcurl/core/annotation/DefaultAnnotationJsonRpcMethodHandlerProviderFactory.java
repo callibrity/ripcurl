@@ -15,35 +15,34 @@
  */
 package com.callibrity.ripcurl.core.annotation;
 
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.reflect.MethodUtils;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class AnnotationJsonRpcMethodProvider implements JsonRpcMethodHandlerProvider {
+public class DefaultAnnotationJsonRpcMethodHandlerProviderFactory implements AnnotationJsonRpcMethodHandlerProviderFactory {
 
 // ------------------------------ FIELDS ------------------------------
 
-    private final List<AnnotationJsonRpcMethodHandler> handlers;
+    private final ObjectMapper mapper;
 
 // --------------------------- CONSTRUCTORS ---------------------------
 
-    public AnnotationJsonRpcMethodProvider(ObjectMapper mapper, Object targetObject) {
-        this.handlers = Arrays.stream(targetObject.getClass().getMethods())
-                .filter(m -> m.isAnnotationPresent(JsonRpc.class))
-                .map(m -> new AnnotationJsonRpcMethodHandler(mapper, targetObject, m))
-                .toList();
+    public DefaultAnnotationJsonRpcMethodHandlerProviderFactory(ObjectMapper mapper) {
+        this.mapper = mapper;
     }
 
 // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface JsonRpcMethodHandlerProvider ---------------------
+// --------------------- Interface AnnotationJsonRpcMethodHandlerProviderFactory ---------------------
 
     @Override
-    public List<JsonRpcMethodHandler> getJsonRpcMethodHandlers() {
-        return List.copyOf(handlers);
+    public JsonRpcMethodHandlerProvider create(Object targetObject) {
+        var handlers = MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), JsonRpc.class).stream()
+                .map(m -> new AnnotationJsonRpcMethodHandler(mapper, targetObject, m))
+                .toList();
+        return () -> List.copyOf(handlers);
     }
 
 }

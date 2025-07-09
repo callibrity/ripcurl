@@ -16,7 +16,8 @@
 package com.callibrity.ripcurl.core.def;
 
 import com.callibrity.ripcurl.core.JsonRpcRequest;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProvider;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
+import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodHandlerProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidRequestException;
 import com.callibrity.ripcurl.core.exception.JsonRpcMethodNotFoundException;
@@ -32,6 +33,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DefaultJsonRpcServiceTest {
 
+    private final AnnotationJsonRpcMethodHandlerProviderFactory factory = new DefaultAnnotationJsonRpcMethodHandlerProviderFactory(new ObjectMapper());
+
     public static class HelloService {
         @JsonRpc
         public String sayHello(String name) {
@@ -42,7 +45,7 @@ class DefaultJsonRpcServiceTest {
     @Test
     void shouldReturnResponseForValidRequest() {
         ObjectMapper mapper = new ObjectMapper();
-        var service = new DefaultJsonRpcService(List.of(new AnnotationJsonRpcMethodProvider(mapper, new HelloService())));
+        var service = new DefaultJsonRpcService(List.of(factory.create(new HelloService())));
 
         var id = TextNode.valueOf("123");
         var response = service.execute(new JsonRpcRequest("2.0", "HelloService.sayHello", mapper.createObjectNode().put("name", "World"), id));
@@ -54,7 +57,7 @@ class DefaultJsonRpcServiceTest {
     @Test
     void missingMethodNameShouldThrowException() {
         ObjectMapper mapper = new ObjectMapper();
-        var service = new DefaultJsonRpcService(List.of(new AnnotationJsonRpcMethodProvider(mapper, new HelloService())));
+        var service = new DefaultJsonRpcService(List.of(factory.create(new HelloService())));
 
         var id = TextNode.valueOf("123");
         var request = new JsonRpcRequest("2.0", "bogus", mapper.createObjectNode().put("name", "World"), id);
@@ -65,7 +68,7 @@ class DefaultJsonRpcServiceTest {
     @Test
     void shouldAllowNumericIds() {
         ObjectMapper mapper = new ObjectMapper();
-        var service = new DefaultJsonRpcService(List.of(new AnnotationJsonRpcMethodProvider(mapper, new HelloService())));
+        var service = new DefaultJsonRpcService(List.of(factory.create(new HelloService())));
 
         var id = IntNode.valueOf(123);
         var response = service.execute(new JsonRpcRequest("2.0", "HelloService.sayHello", mapper.createObjectNode().put("name", "World"), id));
@@ -77,7 +80,7 @@ class DefaultJsonRpcServiceTest {
     @Test
     void shouldReturnNullForNotificationRequest() {
         ObjectMapper mapper = new ObjectMapper();
-        var service = new DefaultJsonRpcService(List.of(new AnnotationJsonRpcMethodProvider(mapper, new HelloService())));
+        var service = new DefaultJsonRpcService(List.of(factory.create(new HelloService())));
 
         var response = service.execute(new JsonRpcRequest("2.0", "HelloService.sayHello", mapper.createObjectNode().put("name", "World"), null));
         assertThat(response).isNull();
@@ -104,7 +107,7 @@ class DefaultJsonRpcServiceTest {
     @Test
     void wrongIdTypeShouldThrowException() {
         ObjectMapper mapper = new ObjectMapper();
-        var service = new DefaultJsonRpcService(List.of(new AnnotationJsonRpcMethodProvider(mapper, new HelloService())));
+        var service = new DefaultJsonRpcService(List.of(factory.create(new HelloService())));
         var request = new JsonRpcRequest("2.0", "HelloService.sayHello", mapper.createObjectNode().put("name", "World"), mapper.createObjectNode());
         assertThatThrownBy(() -> service.execute(request))
                 .isExactlyInstanceOf(JsonRpcInvalidRequestException.class);

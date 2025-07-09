@@ -15,9 +15,9 @@
  */
 package com.callibrity.ripcurl.autoconfigure;
 
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProvider;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -47,17 +47,17 @@ public class TestRpcConfiguration {
     }
 
     @Bean
-    public AnnotationJsonRpcMethodProvider helloHandler(ObjectMapper objectMapper) {
-        return new AnnotationJsonRpcMethodProvider(objectMapper, new HelloRpc());
+    public JsonRpcMethodHandlerProvider helloHandler(AnnotationJsonRpcMethodHandlerProviderFactory factory) {
+        return factory.create(new HelloRpc());
     }
 
     @Bean
-    public AnnotationJsonRpcMethodProvider evilHandler(ObjectMapper objectMapper) {
-        return new AnnotationJsonRpcMethodProvider(objectMapper, new EvilRpc());
+    public JsonRpcMethodHandlerProvider evilHandler(AnnotationJsonRpcMethodHandlerProviderFactory factory) {
+        return factory.create(new EvilRpc());
     }
 
     @Bean
-    public AnnotationJsonRpcMethodProvider notificationHandler(ObjectMapper objectMapper) {
-        return new AnnotationJsonRpcMethodProvider(objectMapper, new NotificationRpc());
+    public JsonRpcMethodHandlerProvider notificationHandler(AnnotationJsonRpcMethodHandlerProviderFactory factory) {
+        return factory.create(new NotificationRpc());
     }
 }
