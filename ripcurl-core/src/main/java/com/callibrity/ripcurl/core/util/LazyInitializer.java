@@ -40,16 +40,10 @@ public class LazyInitializer<T> {
 // -------------------------- OTHER METHODS --------------------------
 
     public T get() {
-        final var current = ref.get();
-        if (current != null) {
-            return current;
-        }
-        ref.compareAndSet(null, supplier.get());
-        return ref.get();
+        return ref.updateAndGet(current -> current == null ? supplier.get() : current);
     }
 
     public void reset() {
         ref.set(null);
     }
-
 }
