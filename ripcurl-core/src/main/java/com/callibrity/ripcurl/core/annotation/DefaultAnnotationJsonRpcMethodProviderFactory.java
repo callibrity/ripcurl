@@ -15,13 +15,12 @@
  */
 package com.callibrity.ripcurl.core.annotation;
 
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.reflect.MethodUtils;
 
 import java.util.List;
 
-public class DefaultAnnotationJsonRpcMethodHandlerProviderFactory implements AnnotationJsonRpcMethodHandlerProviderFactory {
+public class DefaultAnnotationJsonRpcMethodProviderFactory implements AnnotationJsonRpcMethodProviderFactory {
 
 // ------------------------------ FIELDS ------------------------------
 
@@ -29,7 +28,7 @@ public class DefaultAnnotationJsonRpcMethodHandlerProviderFactory implements Ann
 
 // --------------------------- CONSTRUCTORS ---------------------------
 
-    public DefaultAnnotationJsonRpcMethodHandlerProviderFactory(ObjectMapper mapper) {
+    public DefaultAnnotationJsonRpcMethodProviderFactory(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 
@@ -38,11 +37,9 @@ public class DefaultAnnotationJsonRpcMethodHandlerProviderFactory implements Ann
 // --------------------- Interface AnnotationJsonRpcMethodHandlerProviderFactory ---------------------
 
     @Override
-    public JsonRpcMethodHandlerProvider create(Object targetObject) {
-        var handlers = MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), JsonRpc.class).stream()
-                .map(m -> new AnnotationJsonRpcMethodHandler(mapper, targetObject, m))
-                .toList();
-        return () -> List.copyOf(handlers);
+    public JsonRpcMethodProvider create(Object targetObject) {
+        var methods = AnnotationJsonRpcMethod.createMethods(mapper, targetObject);
+        return () -> List.copyOf(methods);
     }
 
 }

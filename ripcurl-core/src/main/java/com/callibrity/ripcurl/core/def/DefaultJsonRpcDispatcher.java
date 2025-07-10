@@ -17,41 +17,41 @@ package com.callibrity.ripcurl.core.def;
 
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import com.callibrity.ripcurl.core.JsonRpcService;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidRequestException;
 import com.callibrity.ripcurl.core.exception.JsonRpcMethodNotFoundException;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-public class DefaultJsonRpcService implements JsonRpcService {
+public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
 // ------------------------------ FIELDS ------------------------------
 
     public static final String VALID_JSONRPC_VERSION = "2.0";
-    private final Map<String, JsonRpcMethodHandler> handlers;
+    private final AtomicReference<Map<String,JsonRpcMethod>> methods = new AtomicReference<>();
+    private final List<JsonRpcMethodProvider> providers;
 
 // --------------------------- CONSTRUCTORS ---------------------------
 
-    public DefaultJsonRpcService(List<JsonRpcMethodHandlerProvider> providers) {
-        this.handlers = providers.stream()
-                .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
-                .collect(Collectors.toMap(JsonRpcMethodHandler::methodName, m -> m));
+    public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
+        this.providers = providers;
     }
 
 // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface JsonRpcService ---------------------
+// --------------------- Interface JsonRpcDispatcher ---------------------
 
     @Override
-    public JsonRpcResponse execute(JsonRpcRequest request) {
+    public JsonRpcResponse dispatch(JsonRpcRequest request) {
         if (!VALID_JSONRPC_VERSION.equals(request.jsonrpc())) {
             throw new JsonRpcInvalidRequestException(String.format("jsonrpc value must be \"%s\".", VALID_JSONRPC_VERSION));
         }
@@ -62,7 +62,7 @@ public class DefaultJsonRpcService implements JsonRpcService {
             throw new JsonRpcInvalidRequestException(String.format("Invalid id type (%s). Must be a %s or %s.", request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
         }
 
-        var result = ofNullable(handlers.get(request.method()))
+        var result = ofNullable(getMethods().get(request.method()))
                 .map(m -> m.call(request.params()))
                 .orElseThrow(() -> new JsonRpcMethodNotFoundException(request.method()));
 
@@ -70,6 +70,20 @@ public class DefaultJsonRpcService implements JsonRpcService {
             return null;
         }
         return new JsonRpcResponse(VALID_JSONRPC_VERSION, result, request.id());
+    }
+
+// -------------------------- OTHER METHODS --------------------------
+
+    private Map<String,JsonRpcMethod> getMethods() {
+        final var current = methods.get();
+        if(current != null) {
+            return current;
+        }
+        final var initialized = providers.stream()
+                .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
+                .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m));
+        methods.compareAndSet(null, initialized);
+        return methods.get();
     }
 
 }

@@ -13,22 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.ripcurl.core.spi;
+package com.callibrity.ripcurl.core;
 
-import java.util.List;
-
-@FunctionalInterface
-public interface JsonRpcMethodHandlerProvider {
-
-// -------------------------- OTHER METHODS --------------------------
-
-    /**
-     * Provides a list of JSON-RPC method handlers. Each handler is responsible for
-     * handling a specific JSON-RPC method and defining its behavior.
-     *
-     * @return a list of {@link JsonRpcMethodHandler} instances representing
-     *         the JSON-RPC methods that can be handled.
-     */
-    List<JsonRpcMethodHandler> getJsonRpcMethodHandlers();
-
+public interface JsonRpcDispatcher {
+   JsonRpcResponse dispatch(JsonRpcRequest request);
 }

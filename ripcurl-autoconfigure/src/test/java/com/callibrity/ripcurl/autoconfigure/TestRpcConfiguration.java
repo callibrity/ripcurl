@@ -15,15 +15,15 @@
  */
 package com.callibrity.ripcurl.autoconfigure;
 
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class TestRpcConfiguration {
 
+    @JsonRpcService
     public static class HelloRpc {
         @JsonRpc("hello")
         public String hello(String name) {
@@ -31,7 +31,7 @@ public class TestRpcConfiguration {
         }
     }
 
-
+    @JsonRpcService
     public static class EvilRpc {
         @JsonRpc("evil")
         public String evil(String input) {
@@ -39,6 +39,7 @@ public class TestRpcConfiguration {
         }
     }
 
+    @JsonRpcService
     public static class NotificationRpc {
         @JsonRpc("notify")
         public void notify(String message) {
@@ -47,17 +48,17 @@ public class TestRpcConfiguration {
     }
 
     @Bean
-    public JsonRpcMethodHandlerProvider helloHandler(AnnotationJsonRpcMethodHandlerProviderFactory factory) {
-        return factory.create(new HelloRpc());
+    public HelloRpc helloRpc() {
+        return new HelloRpc();
     }
 
     @Bean
-    public JsonRpcMethodHandlerProvider evilHandler(AnnotationJsonRpcMethodHandlerProviderFactory factory) {
-        return factory.create(new EvilRpc());
+    public EvilRpc evilRpc() {
+        return new EvilRpc();
     }
 
     @Bean
-    public JsonRpcMethodHandlerProvider notificationHandler(AnnotationJsonRpcMethodHandlerProviderFactory factory) {
-        return factory.create(new NotificationRpc());
+    public NotificationRpc notificationRpc() {
+        return new NotificationRpc();
     }
 }

@@ -34,13 +34,14 @@ ripcurl.endpoint=/your-custom-endpoint
 
 ## Using RipCurl
 
-To use RipCurl, you need to annotate a bean method with `@JsonRpc`:
+To use RipCurl, you need to annotate a bean method with `@JsonRpc` and the bean itself with `@JsonRpcService`:
 
 ```java
 import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import org.springframework.stereotype.Component;
 
 @Component
+@JsonRpcService
 public class HelloRpc {
 
     @JsonRpc("hello")
@@ -50,14 +51,8 @@ public class HelloRpc {
 }
 ```
 
-This bean needs to be registered with RipCurl's `JsonRpcService` by exposing it using a `JsonRpcMethodHandler` bean:
-
-```java
-@Bean
-public JsonRpcMethodHandlerProvider hellpProvider(AnnotationJsonRpcMethodProviderFactory factory, HelloRpc helloRpc) {
-    return factory.create(helloRpc);
-}
-```
+RipCurl will scan the Spring `ApplicationContext` for all beans annotated with the `@JsonRpcService` annotation and 
+register each of their methods annotated with `@JsonRpc` with the `JsonRpcDispatcher`.
 
 You can then send a JSON-RPC request to the `/jsonrpc` endpoint with the following payload:
 

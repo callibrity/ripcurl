@@ -16,26 +16,37 @@
 package com.callibrity.ripcurl.core.annotation;
 
 import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.MethodUtils;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-class AnnotationJsonRpcMethodHandler implements JsonRpcMethodHandler {
+public class AnnotationJsonRpcMethod implements JsonRpcMethod {
 
 // ------------------------------ FIELDS ------------------------------
 
     private final String name;
     private final JsonMethodInvoker invoker;
 
+// -------------------------- STATIC METHODS --------------------------
+
+    public static List<AnnotationJsonRpcMethod> createMethods(ObjectMapper mapper, Object targetObject) {
+        return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), JsonRpc.class).stream()
+                .map(method -> new AnnotationJsonRpcMethod(mapper, targetObject, method))
+                .toList();
+    }
+
 // --------------------------- CONSTRUCTORS ---------------------------
 
-    AnnotationJsonRpcMethodHandler(ObjectMapper mapper, Object targetObject, Method method) {
+    AnnotationJsonRpcMethod(ObjectMapper mapper, Object targetObject, Method method) {
         this.invoker = new JsonMethodInvoker(mapper, targetObject, method);
         var annotation = method.getAnnotation(JsonRpc.class);
         this.name = ofNullable(StringUtils.trimToNull(annotation.value()))
@@ -44,7 +55,7 @@ class AnnotationJsonRpcMethodHandler implements JsonRpcMethodHandler {
 
 // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface JsonRpcMethodHandler ---------------------
+// --------------------- Interface JsonRpcMethod ---------------------
 
     @Override
     public String methodName() {

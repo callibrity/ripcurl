@@ -15,15 +15,15 @@
  */
 package com.callibrity.ripcurl.autoconfigure;
 
-import com.callibrity.ripcurl.core.JsonRpcService;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodHandlerProviderFactory;
-import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodHandlerProviderFactory;
-import com.callibrity.ripcurl.core.def.DefaultJsonRpcMethodProvider;
-import com.callibrity.ripcurl.core.def.DefaultJsonRpcService;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandler;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodHandlerProvider;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
+import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
+import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 import java.util.List;
@@ -34,22 +34,27 @@ public class RipCurlAutoConfiguration {
 // -------------------------- OTHER METHODS --------------------------
 
     @Bean
-    public DefaultJsonRpcMethodProvider defaultJsonRpcMethodProvider(List<JsonRpcMethodHandler> handlers) {
-        return new DefaultJsonRpcMethodProvider(handlers);
+    public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(ApplicationContext ctx, ObjectMapper mapper) {
+        return new JsonRpcServiceMethodProvider(ctx, mapper);
     }
 
     @Bean
-    public JsonRpcService defaultJsonRpcService(List<JsonRpcMethodHandlerProvider> providers) {
-        return new DefaultJsonRpcService(providers);
+    public JsonRpcMethodProvider defaultJsonRpcMethodProvider(List<JsonRpcMethod> methods) {
+        return () -> methods;
     }
 
     @Bean
-    public AnnotationJsonRpcMethodHandlerProviderFactory annotationJsonRpcMethodHandlerProviderFactory(ObjectMapper objectMapper) {
-        return new DefaultAnnotationJsonRpcMethodHandlerProviderFactory(objectMapper);
+    public JsonRpcDispatcher jsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
+        return new DefaultJsonRpcDispatcher(providers);
     }
 
     @Bean
-    public RipCurlController ripCurlController(JsonRpcService service) {
+    public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(ObjectMapper objectMapper) {
+        return new DefaultAnnotationJsonRpcMethodProviderFactory(objectMapper);
+    }
+
+    @Bean
+    public RipCurlController ripCurlController(JsonRpcDispatcher service) {
         return new RipCurlController(service);
     }
 

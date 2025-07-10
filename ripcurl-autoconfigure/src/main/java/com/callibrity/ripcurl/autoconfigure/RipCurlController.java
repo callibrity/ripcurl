@@ -17,7 +17,7 @@ package com.callibrity.ripcurl.autoconfigure;
 
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import com.callibrity.ripcurl.core.JsonRpcService;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.exception.JsonRpcInternalErrorException;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidParamsException;
 import com.callibrity.ripcurl.core.exception.JsonRpcInvalidRequestException;
@@ -39,16 +39,16 @@ public class RipCurlController {
 
     public static final String JSON_RPC_ID_ATTR = RipCurlController.class.getName() + ".JSON_RPC_ID";
     public static final String JACKSON_CLUTTER = "Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); ";
-    private final JsonRpcService jsonRpcService;
+    private final JsonRpcDispatcher jsonRpcDispatcher;
 
-    public RipCurlController(JsonRpcService jsonRpcService) {
-        this.jsonRpcService = jsonRpcService;
+    public RipCurlController(JsonRpcDispatcher jsonRpcDispatcher) {
+        this.jsonRpcDispatcher = jsonRpcDispatcher;
     }
 
     @PostMapping
     public ResponseEntity<JsonRpcResponse> jsonRpc(@RequestBody JsonRpcRequest request, HttpServletRequest httpRequest) {
         httpRequest.setAttribute(JSON_RPC_ID_ATTR, request.id());
-        var response = jsonRpcService.execute(request);
+        var response = jsonRpcDispatcher.dispatch(request);
         if (response == null) {
             return ResponseEntity.noContent().build(); // 204 No Content for notifications
         }
