@@ -84,7 +84,7 @@ class JsonMethodInvokerTest {
 
     var result = invoker.invoke(params);
 
-    assertThat(result.isTextual()).isTrue();
+    assertThat(result.isString()).isTrue();
   }
 
   @Test
@@ -113,7 +113,7 @@ class JsonMethodInvokerTest {
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
     JsonNode result = invoker.invoke(params);
 
-    assertEquals("Hello World", result.asText());
+    assertEquals("Hello World", result.asString());
   }
 
   @Test
@@ -144,7 +144,7 @@ class JsonMethodInvokerTest {
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
     JsonNode result = invoker.invoke(params);
 
-    assertEquals("FooBar", result.asText());
+    assertEquals("FooBar", result.asString());
   }
 
   @Test
@@ -176,7 +176,7 @@ class JsonMethodInvokerTest {
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
     JsonNode result = invoker.invoke(params);
 
-    assertEquals("Hello null", result.asText());
+    assertEquals("Hello null", result.asString());
   }
 
   @Test
@@ -202,7 +202,7 @@ class JsonMethodInvokerTest {
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
     JsonNode result = invoker.invoke(params);
 
-    assertEquals("Hellonull", result.asText());
+    assertEquals("Hellonull", result.asString());
   }
 
   @Test

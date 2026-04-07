@@ -56,7 +56,7 @@ class DefaultJsonRpcDispatcherTest {
                 id));
     assertThat(response).isNotNull();
     assertThat(response.id()).isSameAs(id);
-    assertThat(response.result().textValue()).isEqualTo("Hello, World!");
+    assertThat(response.result().stringValue()).isEqualTo("Hello, World!");
   }
 
   @Test
@@ -72,7 +72,7 @@ class DefaultJsonRpcDispatcherTest {
     var response = service.dispatch(request);
     assertThat(response).isNotNull();
     assertThat(response.id()).isSameAs(id);
-    assertThat(response.result().textValue()).isEqualTo("Hello, World!");
+    assertThat(response.result().stringValue()).isEqualTo("Hello, World!");
   }
 
   @Test
@@ -104,7 +104,7 @@ class DefaultJsonRpcDispatcherTest {
                 id));
     assertThat(response).isNotNull();
     assertThat(response.id()).isSameAs(id);
-    assertThat(response.result().textValue()).isEqualTo("Hello, World!");
+    assertThat(response.result().stringValue()).isEqualTo("Hello, World!");
   }
 
   @Test
