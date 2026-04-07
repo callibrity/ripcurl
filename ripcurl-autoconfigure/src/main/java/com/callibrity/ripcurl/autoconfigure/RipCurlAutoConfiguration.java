@@ -19,43 +19,44 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-
-import java.util.List;
+import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration
 public class RipCurlAutoConfiguration {
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    @Bean
-    public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(ApplicationContext ctx, ObjectMapper mapper) {
-        return new JsonRpcServiceMethodProvider(ctx, mapper);
-    }
+  @Bean
+  public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(
+      ApplicationContext ctx,
+      ObjectMapper mapper,
+      @Autowired(required = false) List<JsonRpcParamResolver> resolvers) {
+    return new JsonRpcServiceMethodProvider(ctx, mapper, resolvers != null ? resolvers : List.of());
+  }
 
-    @Bean
-    public JsonRpcMethodProvider defaultJsonRpcMethodProvider(List<JsonRpcMethod> methods) {
-        return () -> methods;
-    }
+  @Bean
+  public JsonRpcMethodProvider defaultJsonRpcMethodProvider(List<JsonRpcMethod> methods) {
+    return () -> methods;
+  }
 
-    @Bean
-    public JsonRpcDispatcher jsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
-        return new DefaultJsonRpcDispatcher(providers);
-    }
+  @Bean
+  public JsonRpcDispatcher jsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
+    return new DefaultJsonRpcDispatcher(providers);
+  }
 
-    @Bean
-    public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(ObjectMapper objectMapper) {
-        return new DefaultAnnotationJsonRpcMethodProviderFactory(objectMapper);
-    }
-
-    @Bean
-    public RipCurlController ripCurlController(JsonRpcDispatcher service) {
-        return new RipCurlController(service);
-    }
-
+  @Bean
+  public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(
+      ObjectMapper objectMapper,
+      @Autowired(required = false) List<JsonRpcParamResolver> resolvers) {
+    return new DefaultAnnotationJsonRpcMethodProviderFactory(
+        objectMapper, resolvers != null ? resolvers : List.of());
+  }
 }

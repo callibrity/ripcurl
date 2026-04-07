@@ -17,46 +17,50 @@ package com.callibrity.ripcurl.autoconfigure;
 
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
+import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import org.springframework.context.ApplicationContext;
-
 import java.util.List;
+import org.springframework.context.ApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 public class JsonRpcServiceMethodProvider implements JsonRpcMethodProvider {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private List<AnnotationJsonRpcMethod> methods;
+  private List<AnnotationJsonRpcMethod> methods;
 
-    private final ApplicationContext ctx;
-    private final ObjectMapper mapper;
+  private final ApplicationContext ctx;
+  private final ObjectMapper mapper;
+  private final List<JsonRpcParamResolver> resolvers;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public JsonRpcServiceMethodProvider(ApplicationContext ctx, ObjectMapper mapper) {
-        this.ctx = ctx;
-        this.mapper = mapper;
-    }
+  public JsonRpcServiceMethodProvider(
+      ApplicationContext ctx, ObjectMapper mapper, List<JsonRpcParamResolver> resolvers) {
+    this.ctx = ctx;
+    this.mapper = mapper;
+    this.resolvers = resolvers;
+  }
 
-// ------------------------ INTERFACE METHODS ------------------------
+  // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface JsonRpcMethodProvider ---------------------
+  // --------------------- Interface JsonRpcMethodProvider ---------------------
 
-    @Override
-    public List<JsonRpcMethod> getJsonRpcMethodHandlers() {
-        return List.copyOf(methods);
-    }
+  @Override
+  public List<JsonRpcMethod> getJsonRpcMethodHandlers() {
+    return List.copyOf(methods);
+  }
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    @PostConstruct
-    public void initialize() {
-        this.methods = ctx.getBeansWithAnnotation(JsonRpcService.class).values().stream()
-                .flatMap(bean -> AnnotationJsonRpcMethod.createMethods(mapper, bean).stream())
-                .toList();
-    }
-
+  @PostConstruct
+  public void initialize() {
+    this.methods =
+        ctx.getBeansWithAnnotation(JsonRpcService.class).values().stream()
+            .flatMap(
+                bean -> AnnotationJsonRpcMethod.createMethods(mapper, bean, resolvers).stream())
+            .toList();
+  }
 }

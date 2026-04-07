@@ -18,12 +18,13 @@ package com.callibrity.ripcurl.core.annotation;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 
 public interface AnnotationJsonRpcMethodProviderFactory {
-    /**
-     * Creates a {@link JsonRpcMethodProvider} for the given target object. All methods annotated with
-     * {@link JsonRpc} will be registered as JSON-RPC methods.
-     *
-     * @param targetObject the object containing methods annotated with {@link JsonRpc}
-     * @return a {@link JsonRpcMethodProvider} that provides access to the JSON-RPC methods defined in the target object
-     */
-    JsonRpcMethodProvider create(Object targetObject);
+  /**
+   * Creates a {@link JsonRpcMethodProvider} for the given target object. All methods annotated with
+   * {@link JsonRpc} will be registered as JSON-RPC methods.
+   *
+   * @param targetObject the object containing methods annotated with {@link JsonRpc}
+   * @return a {@link JsonRpcMethodProvider} that provides access to the JSON-RPC methods defined in
+   *     the target object
+   */
+  JsonRpcMethodProvider create(Object targetObject);
 }

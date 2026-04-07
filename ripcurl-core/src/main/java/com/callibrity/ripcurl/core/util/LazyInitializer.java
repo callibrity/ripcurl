@@ -20,30 +20,30 @@ import java.util.function.Supplier;
 
 public class LazyInitializer<T> {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final AtomicReference<T> ref = new AtomicReference<>();
-    private final Supplier<T> supplier;
+  private final AtomicReference<T> ref = new AtomicReference<>();
+  private final Supplier<T> supplier;
 
-// -------------------------- STATIC METHODS --------------------------
+  // -------------------------- STATIC METHODS --------------------------
 
-    public static <T> LazyInitializer<T> of(Supplier<T> initializer) {
-        return new LazyInitializer<>(initializer);
-    }
+  public static <T> LazyInitializer<T> of(Supplier<T> initializer) {
+    return new LazyInitializer<>(initializer);
+  }
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public LazyInitializer(Supplier<T> supplier) {
-        this.supplier = supplier;
-    }
+  public LazyInitializer(Supplier<T> supplier) {
+    this.supplier = supplier;
+  }
 
-// -------------------------- OTHER METHODS --------------------------
+  // -------------------------- OTHER METHODS --------------------------
 
-    public T get() {
-        return ref.updateAndGet(current -> current == null ? supplier.get() : current);
-    }
+  public T get() {
+    return ref.updateAndGet(current -> current == null ? supplier.get() : current);
+  }
 
-    public void reset() {
-        ref.set(null);
-    }
+  public void reset() {
+    ref.set(null);
+  }
 }

@@ -15,16 +15,27 @@
  */
 package com.callibrity.ripcurl.core.exception;
 
-public abstract class JsonRpcException extends RuntimeException {
+public class JsonRpcException extends RuntimeException {
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  public static final int PARSE_ERROR = -32700;
+  public static final int INVALID_REQUEST = -32600;
+  public static final int METHOD_NOT_FOUND = -32601;
+  public static final int INVALID_PARAMS = -32602;
+  public static final int INTERNAL_ERROR = -32603;
 
-    protected JsonRpcException(String message) {
-        super(message);
-    }
+  private final int code;
 
-    protected JsonRpcException(String message, Exception cause) {
-        super(message, cause);
-    }
+  public JsonRpcException(int code, String message) {
+    super(message);
+    this.code = code;
+  }
 
+  public JsonRpcException(int code, String message, Exception cause) {
+    super(message, cause);
+    this.code = code;
+  }
+
+  public int getCode() {
+    return code;
+  }
 }

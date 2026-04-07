@@ -15,31 +15,35 @@
  */
 package com.callibrity.ripcurl.core.annotation;
 
+import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.List;
+import tools.jackson.databind.ObjectMapper;
 
-public class DefaultAnnotationJsonRpcMethodProviderFactory implements AnnotationJsonRpcMethodProviderFactory {
+public class DefaultAnnotationJsonRpcMethodProviderFactory
+    implements AnnotationJsonRpcMethodProviderFactory {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    private final ObjectMapper mapper;
+  private final ObjectMapper mapper;
+  private final List<JsonRpcParamResolver> resolvers;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public DefaultAnnotationJsonRpcMethodProviderFactory(ObjectMapper mapper) {
-        this.mapper = mapper;
-    }
+  public DefaultAnnotationJsonRpcMethodProviderFactory(
+      ObjectMapper mapper, List<JsonRpcParamResolver> resolvers) {
+    this.mapper = mapper;
+    this.resolvers = List.copyOf(resolvers);
+  }
 
-// ------------------------ INTERFACE METHODS ------------------------
+  // ------------------------ INTERFACE METHODS ------------------------
 
-// --------------------- Interface AnnotationJsonRpcMethodHandlerProviderFactory ---------------------
+  // --------------------- Interface AnnotationJsonRpcMethodHandlerProviderFactory
+  // ---------------------
 
-    @Override
-    public JsonRpcMethodProvider create(Object targetObject) {
-        var methods = AnnotationJsonRpcMethod.createMethods(mapper, targetObject);
-        return () -> List.copyOf(methods);
-    }
-
+  @Override
+  public JsonRpcMethodProvider create(Object targetObject) {
+    var methods = AnnotationJsonRpcMethod.createMethods(mapper, targetObject, resolvers);
+    return () -> List.copyOf(methods);
+  }
 }

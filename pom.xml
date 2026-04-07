@@ -18,12 +18,20 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.5</version>
+        <relativePath/>
+    </parent>
+
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>RipCurl</name>
-    <description>A JSON-RPC Framework for Spring Boot 3</description>
+    <description>A JSON-RPC Framework for Spring Boot 4</description>
 
     <url>https://github.com/callibrity/ripcurl</url>
     <inceptionYear>2025</inceptionYear>
@@ -55,122 +63,33 @@
         <module>ripcurl-core</module>
         <module>ripcurl-autoconfigure</module>
         <module>ripcurl-spring-boot-starter</module>
-        <module>ripcurl-coverage</module>
     </modules>
 
     <properties>
-        <java.version>24</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.compiler.parameters>true</maven.compiler.parameters>
+        <spotless.version>3.4.0</spotless.version>
+        <jacocoArgLine></jacocoArgLine>
+
+        <!-- Publishing plugin versions -->
+        <gpg.plugin.version>3.2.8</gpg.plugin.version>
+        <javadoc.plugin.version>3.12.0</javadoc.plugin.version>
+        <source.plugin.version>3.4.0</source.plugin.version>
+        <sonatype.plugin.version>0.10.0</sonatype.plugin.version>
+        <license.plugin.version>5.0.0</license.plugin.version>
+        <jacoco.plugin.version>0.8.14</jacoco.plugin.version>
+        <sonar.plugin.version>5.5.0.6356</sonar.plugin.version>
+
+        <!-- License Header Configuration -->
+        <license.owner>Callibrity, Inc.</license.owner>
+        <license.email>contactus@callibrity.com</license.email>
+
+        <!-- SonarCloud -->
         <sonar.organization>callibrity</sonar.organization>
-        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/ripcurl-coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-        <!-- Dependency Versions -->
-        <spring.boot.version>3.5.3</spring.boot.version>
-
-        <!-- Plugin Versions -->
-        <gpg.plugin.version>3.2.7</gpg.plugin.version>
-        <jacoco.plugin.version>0.8.13</jacoco.plugin.version>
-        <javadoc.plugin.version>3.11.1</javadoc.plugin.version>
-        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-        <maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
-        <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
-        <sonatype.plugin.version>0.6.0</sonatype.plugin.version>
-        <source.plugin.version>3.3.1</source.plugin.version>
-        <surefire.plugin.version>3.5.2</surefire.plugin.version>
-
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.projectKey>callibrity_ripcurl</sonar.projectKey>
     </properties>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-                <configuration>
-                    <argLine>
-                        ${argLine}
-                        -javaagent:${org.mockito:mockito-core:jar}
-                        -javaagent:${net.bytebuddy:byte-buddy-agent:jar}
-                        -Xshare:off
-                    </argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-failsafe-plugin.version}</version>
-                <configuration>
-                    <argLine>
-                        ${argLine}
-                        -javaagent:${org.mockito:mockito-core:jar}
-                        -javaagent:${net.bytebuddy:byte-buddy-agent:jar}
-                        -Xshare:off
-                    </argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                        <configuration>
-                            <formats>
-                                <format>XML</format>
-                            </formats>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>${maven-compiler-plugin.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>${jacoco.plugin.version}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring.boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -197,22 +116,93 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.jayway.jsonpath</groupId>
-            <artifactId>json-path</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{jacocoArgLine} -javaagent:"${org.mockito:mockito-core:jar}" -javaagent:"${net.bytebuddy:byte-buddy-agent:jar}" -Xshare:off</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <argLine>@{jacocoArgLine} -javaagent:"${org.mockito:mockito-core:jar}" -javaagent:"${net.bytebuddy:byte-buddy-agent:jar}" -Xshare:off</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                        </path>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-autoconfigure-processor</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar.plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <profiles>
+        <!-- Release profile for Maven Central publishing -->
         <profile>
             <id>release</id>
             <build>
@@ -279,6 +269,44 @@
                 </plugins>
             </build>
         </profile>
+
+        <!-- CI profile for JaCoCo coverage -->
+        <profile>
+            <id>ci</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>${jacoco.plugin.version}</version>
+                        <configuration>
+                            <propertyName>jacocoArgLine</propertyName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                                <configuration>
+                                    <formats>
+                                        <format>XML</format>
+                                    </formats>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- License header check/format -->
         <profile>
             <id>license</id>
             <activation>
@@ -289,25 +317,51 @@
                     <plugin>
                         <groupId>com.mycila</groupId>
                         <artifactId>license-maven-plugin</artifactId>
-                        <version>5.0.0</version>
+                        <version>${license.plugin.version}</version>
                         <configuration>
                             <properties>
-                                <owner>Callibrity, Inc.</owner>
-                                <email>contactus@callibrity.com</email>
+                                <owner>${license.owner}</owner>
+                                <email>${license.email}</email>
                             </properties>
                             <licenseSets>
                                 <licenseSet>
-                                    <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
-                                     <excludes>
+                                    <inlineHeader><![CDATA[Copyright © ${year} ${owner} (${email})
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.]]></inlineHeader>
+                                    <excludes>
                                         <exclude>**/README</exclude>
+                                        <exclude>**/README.md</exclude>
                                         <exclude>src/test/resources/**</exclude>
                                         <exclude>src/main/resources/**</exclude>
+                                        <exclude>LICENSE</exclude>
+                                        <exclude>.github/**</exclude>
+                                        <exclude>**/*.txt</exclude>
+                                        <exclude>**/*.sh</exclude>
+                                        <exclude>**/*.md</exclude>
+                                        <exclude>docs/**</exclude>
+                                        <exclude>specs/**</exclude>
                                     </excludes>
                                 </licenseSet>
                             </licenseSets>
                         </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

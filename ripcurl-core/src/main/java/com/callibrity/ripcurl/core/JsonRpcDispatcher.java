@@ -16,5 +16,5 @@
 package com.callibrity.ripcurl.core;
 
 public interface JsonRpcDispatcher {
-   JsonRpcResponse dispatch(JsonRpcRequest request);
+  JsonRpcResponse dispatch(JsonRpcRequest request);
 }

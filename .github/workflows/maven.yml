@@ -9,23 +9,27 @@ on:
       - synchronize
       - reopened
     branches: [ "main" ]
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
-    - name: Set up JDK 24
-      uses: actions/setup-java@v4
+
+    - name: Set up JDK 25
+      uses: actions/setup-java@v5
       with:
-        java-version: '24'
-        distribution: 'temurin'
+        java-version: '25'
+        distribution: 'liberica'
         cache: maven
-    - name: Check License Headers
-      run: mvn -Plicense license:check
+
     - name: Build with Maven
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=callibrity_ripcurl
+      run: mvn -Pci -B verify sonar:sonar

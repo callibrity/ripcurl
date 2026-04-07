@@ -15,63 +15,77 @@
  */
 package com.callibrity.ripcurl.core.def;
 
+import static java.util.Optional.ofNullable;
+
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import com.callibrity.ripcurl.core.exception.JsonRpcInvalidRequestException;
-import com.callibrity.ripcurl.core.exception.JsonRpcMethodNotFoundException;
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import com.callibrity.ripcurl.core.util.LazyInitializer;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static java.util.Optional.ofNullable;
+import org.apache.commons.lang3.StringUtils;
+import tools.jackson.databind.node.JsonNodeType;
 
 public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
-// ------------------------------ FIELDS ------------------------------
+  // ------------------------------ FIELDS ------------------------------
 
-    public static final String VALID_JSONRPC_VERSION = "2.0";
+  public static final String VALID_JSONRPC_VERSION = "2.0";
 
-    private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
+  private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
 
-// --------------------------- CONSTRUCTORS ---------------------------
+  // --------------------------- CONSTRUCTORS ---------------------------
 
-    public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
-        this.methods = LazyInitializer.of(() -> providers.stream()
-                .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
-                .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m)));
+  public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
+    this.methods =
+        LazyInitializer.of(
+            () ->
+                providers.stream()
+                    .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
+                    .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m)));
+  }
+
+  // ------------------------ INTERFACE METHODS ------------------------
+
+  // --------------------- Interface JsonRpcDispatcher ---------------------
+
+  @Override
+  public JsonRpcResponse dispatch(JsonRpcRequest request) {
+    if (!VALID_JSONRPC_VERSION.equals(request.jsonrpc())) {
+      throw new JsonRpcException(
+          JsonRpcException.INVALID_REQUEST,
+          String.format("jsonrpc value must be \"%s\".", VALID_JSONRPC_VERSION));
+    }
+    if (StringUtils.isBlank(request.method())) {
+      throw new JsonRpcException(
+          JsonRpcException.INVALID_REQUEST, "JSON-RPC method name is required.");
+    }
+    if (request.id() != null
+        && request.id().getNodeType() != JsonNodeType.STRING
+        && request.id().getNodeType() != JsonNodeType.NUMBER) {
+      throw new JsonRpcException(
+          JsonRpcException.INVALID_REQUEST,
+          String.format(
+              "Invalid id type (%s). Must be a %s or %s.",
+              request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
     }
 
-// ------------------------ INTERFACE METHODS ------------------------
+    var result =
+        ofNullable(methods.get().get(request.method()))
+            .map(m -> m.call(request.params()))
+            .orElseThrow(
+                () ->
+                    new JsonRpcException(
+                        JsonRpcException.METHOD_NOT_FOUND,
+                        String.format("JSON-RPC method \"%s\" not found.", request.method())));
 
-// --------------------- Interface JsonRpcDispatcher ---------------------
-
-    @Override
-    public JsonRpcResponse dispatch(JsonRpcRequest request) {
-        if (!VALID_JSONRPC_VERSION.equals(request.jsonrpc())) {
-            throw new JsonRpcInvalidRequestException(String.format("jsonrpc value must be \"%s\".", VALID_JSONRPC_VERSION));
-        }
-        if (StringUtils.isBlank(request.method())) {
-            throw new JsonRpcInvalidRequestException("JSON-RPC method name is required.");
-        }
-        if (request.id() != null && request.id().getNodeType() != JsonNodeType.STRING && request.id().getNodeType() != JsonNodeType.NUMBER) {
-            throw new JsonRpcInvalidRequestException(String.format("Invalid id type (%s). Must be a %s or %s.", request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
-        }
-
-        var result = ofNullable(methods.get().get(request.method()))
-                .map(m -> m.call(request.params()))
-                .orElseThrow(() -> new JsonRpcMethodNotFoundException(request.method()));
-
-        if (request.id() == null) {
-            return null;
-        }
-        return new JsonRpcResponse(VALID_JSONRPC_VERSION, result, request.id());
+    if (request.id() == null) {
+      return null;
     }
-
+    return new JsonRpcResponse(VALID_JSONRPC_VERSION, result, request.id());
+  }
 }

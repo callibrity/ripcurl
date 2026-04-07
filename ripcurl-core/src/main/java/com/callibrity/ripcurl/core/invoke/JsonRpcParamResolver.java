@@ -13,21 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.ripcurl.core.spi;
+package com.callibrity.ripcurl.core.invoke;
 
-import java.util.List;
+import java.lang.reflect.Parameter;
 
+/**
+ * Resolves method parameters that are not present in the JSON-RPC params. Implementations are
+ * consulted in order before falling back to JSON parameter resolution. Return {@code null} to
+ * indicate this resolver cannot provide a value for the given parameter.
+ */
 @FunctionalInterface
-public interface JsonRpcMethodProvider {
-
-  // -------------------------- OTHER METHODS --------------------------
+public interface JsonRpcParamResolver {
 
   /**
-   * Provides a list of JSON-RPC method handlers. Each handler is responsible for handling a
-   * specific JSON-RPC method and defining its behavior.
+   * Attempts to resolve a value for the given method parameter.
    *
-   * @return a list of {@link JsonRpcMethod} instances representing the JSON-RPC methods that can be
-   *     handled.
+   * @param parameter the method parameter to resolve
+   * @return the resolved value, or {@code null} if this resolver cannot handle it
    */
-  List<JsonRpcMethod> getJsonRpcMethodHandlers();
+  Object resolve(Parameter parameter);
 }

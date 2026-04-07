@@ -27,10 +27,11 @@ import java.lang.annotation.Target;
 @Documented
 @Inherited
 public @interface JsonRpc {
-    /**
-     * Specifies the name associated with the JSON-RPC method.
-     *
-     * @return the name or identifier of the JSON-RPC method, default is an empty string (method name will be used)
-     */
-    String value() default "";
+  /**
+   * Specifies the name associated with the JSON-RPC method.
+   *
+   * @return the name or identifier of the JSON-RPC method, default is an empty string (method name
+   *     will be used)
+   */
+  String value() default "";
 }
