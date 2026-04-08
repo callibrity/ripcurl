@@ -71,7 +71,7 @@ public class JsonMethodInvoker {
       } else {
         jsonResult = mapper.valueToTree(result);
       }
-      return new JsonRpcResponse(jsonResult, request.id());
+      return request.response(jsonResult);
     } catch (InvocationTargetException e) {
       if (e.getTargetException() instanceof JsonRpcException jre) {
         throw jre;

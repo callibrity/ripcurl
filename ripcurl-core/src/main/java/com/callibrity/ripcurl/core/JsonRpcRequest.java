@@ -28,4 +28,9 @@ public record JsonRpcRequest(String jsonrpc, String method, JsonNode params, Jso
   public static JsonRpcRequest notification(String method, JsonNode params) {
     return new JsonRpcRequest(JsonRpcProtocol.VERSION, method, params, null);
   }
+
+  /** Creates a JSON-RPC response for this request, echoing the id. */
+  public JsonRpcResponse response(JsonNode result) {
+    return new JsonRpcResponse(result, this.id);
+  }
 }
