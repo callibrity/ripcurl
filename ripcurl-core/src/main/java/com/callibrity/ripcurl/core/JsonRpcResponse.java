@@ -17,4 +17,8 @@ package com.callibrity.ripcurl.core;
 
 import tools.jackson.databind.JsonNode;
 
-public record JsonRpcResponse(String jsonrpc, JsonNode result, JsonNode id) {}
+public record JsonRpcResponse(String jsonrpc, JsonNode result, JsonNode id) {
+  public JsonRpcResponse(JsonNode result, JsonNode id) {
+    this(JsonRpcProtocol.VERSION, result, id);
+  }
+}

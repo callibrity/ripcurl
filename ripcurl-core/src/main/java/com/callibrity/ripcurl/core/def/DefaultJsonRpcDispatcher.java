@@ -83,6 +83,6 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
     if (request.id() == null) {
       return null;
     }
-    return new JsonRpcResponse(JsonRpcProtocol.VERSION, result, request.id());
+    return new JsonRpcResponse(result, request.id());
   }
 }
