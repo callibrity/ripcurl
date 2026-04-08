@@ -1,13 +1,16 @@
 # Changelog
 
-## 0.4.0
+## 0.5.0
 
 ### New Features
+- `JsonRpcRequest.request(method, params, id)` — static factory for requests with version set automatically
+- `JsonRpcRequest.notification(method, params)` — static factory for notifications (null id)
+- `JsonRpcResponse(result, id)` — convenience constructor that sets `jsonrpc` to `"2.0"` automatically
 - `JsonRpcProtocol.VERSION` — public constant for the JSON-RPC 2.0 version string
-- `JsonRpcResponse(JsonNode result, JsonNode id)` — convenience constructor that sets `jsonrpc` to `"2.0"` automatically
 
 ### Cleanup
 - Removed redundant `VALID_JSONRPC_VERSION` constant from `DefaultJsonRpcDispatcher`
+- Removed convenience constructors on `JsonRpcRequest` in favor of static factories
 
 ## 0.3.0
 

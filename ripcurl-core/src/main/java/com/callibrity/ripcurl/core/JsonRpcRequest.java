@@ -17,4 +17,15 @@ package com.callibrity.ripcurl.core;
 
 import tools.jackson.databind.JsonNode;
 
-public record JsonRpcRequest(String jsonrpc, String method, JsonNode params, JsonNode id) {}
+public record JsonRpcRequest(String jsonrpc, String method, JsonNode params, JsonNode id) {
+
+  /** Creates a JSON-RPC request with the version set automatically. */
+  public static JsonRpcRequest request(String method, JsonNode params, JsonNode id) {
+    return new JsonRpcRequest(JsonRpcProtocol.VERSION, method, params, id);
+  }
+
+  /** Creates a JSON-RPC notification (a request with no id). */
+  public static JsonRpcRequest notification(String method, JsonNode params) {
+    return new JsonRpcRequest(JsonRpcProtocol.VERSION, method, params, null);
+  }
+}
