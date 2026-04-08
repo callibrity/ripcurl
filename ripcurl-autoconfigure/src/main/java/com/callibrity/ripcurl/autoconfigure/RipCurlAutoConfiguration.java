@@ -23,7 +23,6 @@ import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -36,10 +35,8 @@ public class RipCurlAutoConfiguration {
 
   @Bean
   public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(
-      ApplicationContext ctx,
-      ObjectMapper mapper,
-      @Autowired(required = false) List<JsonRpcParamResolver> resolvers) {
-    return new JsonRpcServiceMethodProvider(ctx, mapper, resolvers != null ? resolvers : List.of());
+      ApplicationContext ctx, ObjectMapper mapper, List<JsonRpcParamResolver> resolvers) {
+    return new JsonRpcServiceMethodProvider(ctx, mapper, resolvers);
   }
 
   @Bean
@@ -54,9 +51,7 @@ public class RipCurlAutoConfiguration {
 
   @Bean
   public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(
-      ObjectMapper objectMapper,
-      @Autowired(required = false) List<JsonRpcParamResolver> resolvers) {
-    return new DefaultAnnotationJsonRpcMethodProviderFactory(
-        objectMapper, resolvers != null ? resolvers : List.of());
+      ObjectMapper objectMapper, List<JsonRpcParamResolver> resolvers) {
+    return new DefaultAnnotationJsonRpcMethodProviderFactory(objectMapper, resolvers);
   }
 }
