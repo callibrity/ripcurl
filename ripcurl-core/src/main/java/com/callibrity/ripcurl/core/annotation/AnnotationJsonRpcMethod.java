@@ -17,6 +17,8 @@ package com.callibrity.ripcurl.core.annotation;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
 import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
@@ -25,7 +27,6 @@ import java.util.List;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 public class AnnotationJsonRpcMethod implements JsonRpcMethod {
@@ -71,7 +72,7 @@ public class AnnotationJsonRpcMethod implements JsonRpcMethod {
   }
 
   @Override
-  public JsonNode call(JsonNode params) {
-    return invoker.invoke(params);
+  public JsonRpcResponse call(JsonRpcRequest request) {
+    return invoker.invoke(request);
   }
 }

@@ -17,23 +17,20 @@ package com.callibrity.ripcurl.core.invoke;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.reflect.Method;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.JsonNodeFactory;
-import tools.jackson.databind.node.NullNode;
-import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.StringNode;
 
 class JsonMethodInvokerTest {
   private final ObjectMapper mapper = new ObjectMapper();
+  private static final StringNode TEST_ID = StringNode.valueOf("test-id");
 
   public abstract static class EchoService<T> {
     public T echo(T original) {
@@ -68,9 +65,19 @@ class JsonMethodInvokerTest {
       throw new JsonRpcException(JsonRpcException.INVALID_PARAMS, "I don't like you!");
     }
 
+    public JsonRpcResponse rawResponse() {
+      return new JsonRpcResponse(StringNode.valueOf("custom"), TEST_ID)
+          .withMetadata("key", "value");
+    }
+
     private String hidden(String input) {
       return "nope";
     }
+  }
+
+  private JsonRpcRequest request(Object params) {
+    return JsonRpcRequest.request(
+        "test", params instanceof tools.jackson.databind.JsonNode jn ? jn : null, TEST_ID);
   }
 
   @Test
@@ -82,9 +89,9 @@ class JsonMethodInvokerTest {
     var params = JsonNodeFactory.instance.objectNode();
     params.put("original", "Hello");
 
-    var result = invoker.invoke(params);
+    var response = invoker.invoke(request(params));
 
-    assertThat(result.isString()).isTrue();
+    assertThat(response.result().isString()).isTrue();
   }
 
   @Test
@@ -95,7 +102,7 @@ class JsonMethodInvokerTest {
     var params = JsonNodeFactory.instance.objectNode();
     params.put("input", "Hello");
 
-    assertThatThrownBy(() -> invoker.invoke(params))
+    assertThatThrownBy(() -> invoker.invoke(request(params)))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INTERNAL_ERROR);
@@ -106,14 +113,15 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("concat", String.class, String.class);
 
-    ObjectNode params = JsonNodeFactory.instance.objectNode();
+    var params = JsonNodeFactory.instance.objectNode();
     params.put("a", "Hello ");
     params.put("b", "World");
 
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(params);
+    JsonRpcResponse response = invoker.invoke(request(params));
 
-    assertEquals("Hello World", result.asString());
+    assertThat(response.result().asString()).isEqualTo("Hello World");
+    assertThat(response.id()).isEqualTo(TEST_ID);
   }
 
   @Test
@@ -121,12 +129,12 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("concat", String.class, String.class);
 
-    ObjectNode params = JsonNodeFactory.instance.objectNode();
+    var params = JsonNodeFactory.instance.objectNode();
     params.putObject("a");
     params.putObject("b");
 
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    assertThatThrownBy(() -> invoker.invoke(params))
+    assertThatThrownBy(() -> invoker.invoke(request(params)))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INVALID_PARAMS);
@@ -137,14 +145,14 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("concat", String.class, String.class);
 
-    ArrayNode params = JsonNodeFactory.instance.arrayNode();
+    var params = JsonNodeFactory.instance.arrayNode();
     params.add("Foo");
     params.add("Bar");
 
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(params);
+    JsonRpcResponse response = invoker.invoke(request(params));
 
-    assertEquals("FooBar", result.asString());
+    assertThat(response.result().asString()).isEqualTo("FooBar");
   }
 
   @Test
@@ -152,8 +160,11 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("echo", String.class);
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(NullNode.getInstance());
-    assertTrue(result.isNull());
+    JsonRpcResponse response =
+        invoker.invoke(
+            new JsonRpcRequest(
+                "2.0", "test", tools.jackson.databind.node.NullNode.getInstance(), TEST_ID));
+    assertThat(response.result().isNull()).isTrue();
   }
 
   @Test
@@ -161,8 +172,8 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("echo", String.class);
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(null);
-    assertTrue(result.isNull());
+    JsonRpcResponse response = invoker.invoke(new JsonRpcRequest("2.0", "test", null, TEST_ID));
+    assertThat(response.result().isNull()).isTrue();
   }
 
   @Test
@@ -170,13 +181,13 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("concat", String.class, String.class);
 
-    ObjectNode params = JsonNodeFactory.instance.objectNode();
+    var params = JsonNodeFactory.instance.objectNode();
     params.put("a", "Hello ");
 
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(params);
+    JsonRpcResponse response = invoker.invoke(request(params));
 
-    assertEquals("Hello null", result.asString());
+    assertThat(response.result().asString()).isEqualTo("Hello null");
   }
 
   @Test
@@ -184,8 +195,8 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("echo", String.class);
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    var parameters = StringNode.valueOf("Hello World");
-    assertThatThrownBy(() -> invoker.invoke(parameters))
+    var req = new JsonRpcRequest("2.0", "test", StringNode.valueOf("Hello World"), TEST_ID);
+    assertThatThrownBy(() -> invoker.invoke(req))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INVALID_PARAMS);
@@ -196,13 +207,13 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("concat", String.class, String.class);
 
-    ArrayNode params = JsonNodeFactory.instance.arrayNode();
-    params.add("Hello"); // Only one parameter
+    var params = JsonNodeFactory.instance.arrayNode();
+    params.add("Hello");
 
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(params);
+    JsonRpcResponse response = invoker.invoke(request(params));
 
-    assertEquals("Hellonull", result.asString());
+    assertThat(response.result().asString()).isEqualTo("Hellonull");
   }
 
   @Test
@@ -210,8 +221,8 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("doNothingPrimitive");
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(null);
-    assertTrue(result.isNull());
+    JsonRpcResponse response = invoker.invoke(new JsonRpcRequest("2.0", "test", null, TEST_ID));
+    assertThat(response.result().isNull()).isTrue();
   }
 
   @Test
@@ -219,8 +230,8 @@ class JsonMethodInvokerTest {
     DummyService service = new DummyService();
     Method method = DummyService.class.getMethod("doNothingObject");
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    JsonNode result = invoker.invoke(null);
-    assertTrue(result.isNull());
+    JsonRpcResponse response = invoker.invoke(new JsonRpcRequest("2.0", "test", null, TEST_ID));
+    assertThat(response.result().isNull()).isTrue();
   }
 
   @Test
@@ -230,7 +241,7 @@ class JsonMethodInvokerTest {
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
     var params = JsonNodeFactory.instance.objectNode();
     params.put("input", "Hello");
-    assertThatThrownBy(() -> invoker.invoke(params))
+    assertThatThrownBy(() -> invoker.invoke(request(params)))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessage("I don't like you!");
   }
@@ -244,9 +255,22 @@ class JsonMethodInvokerTest {
     var params = JsonNodeFactory.instance.objectNode();
     params.put("input", "test");
 
-    assertThatThrownBy(() -> invoker.invoke(params))
+    assertThatThrownBy(() -> invoker.invoke(request(params)))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INTERNAL_ERROR);
+  }
+
+  @Test
+  void handlerReturningJsonRpcResponsePassesThrough() throws Exception {
+    DummyService service = new DummyService();
+    Method method = DummyService.class.getMethod("rawResponse");
+    JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
+
+    JsonRpcResponse response = invoker.invoke(new JsonRpcRequest("2.0", "test", null, TEST_ID));
+
+    assertThat(response.result()).isEqualTo(StringNode.valueOf("custom"));
+    assertThat(response.id()).isEqualTo(TEST_ID);
+    assertThat(response.getMetadata("key", String.class)).hasValue("value");
   }
 }

@@ -71,18 +71,19 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
               request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
     }
 
-    var result =
+    var method =
         ofNullable(methods.get().get(request.method()))
-            .map(m -> m.call(request.params()))
             .orElseThrow(
                 () ->
                     new JsonRpcException(
                         JsonRpcException.METHOD_NOT_FOUND,
                         String.format("JSON-RPC method \"%s\" not found.", request.method())));
 
+    var response = method.call(request);
+
     if (request.id() == null) {
       return null;
     }
-    return new JsonRpcResponse(result, request.id());
+    return response;
   }
 }

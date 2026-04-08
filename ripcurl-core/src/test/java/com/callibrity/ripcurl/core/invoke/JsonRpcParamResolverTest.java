@@ -17,15 +17,18 @@ package com.callibrity.ripcurl.core.invoke;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.ripcurl.core.JsonRpcRequest;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.StringNode;
 
 class JsonRpcParamResolverTest {
 
   private final ObjectMapper mapper = new ObjectMapper();
+  private static final StringNode TEST_ID = StringNode.valueOf("test-id");
 
   public static class ServiceWithContext {
     public String greet(String name, StringBuilder context) {
@@ -48,9 +51,9 @@ class JsonRpcParamResolverTest {
 
     var invoker = new JsonMethodInvoker(mapper, service, method, List.of(contextResolver));
     var params = JsonNodeFactory.instance.objectNode().put("name", "World");
-    var result = invoker.invoke(params);
+    var response = invoker.invoke(JsonRpcRequest.request("test", params, TEST_ID));
 
-    assertThat(result.asString()).isEqualTo("Hello, World!");
+    assertThat(response.result().asString()).isEqualTo("Hello, World!");
     assertThat(context).hasToString("called");
   }
 
@@ -69,9 +72,9 @@ class JsonRpcParamResolverTest {
 
     var invoker = new JsonMethodInvoker(mapper, service, method, List.of(noopResolver));
     var params = JsonNodeFactory.instance.objectNode().put("input", "World");
-    var result = invoker.invoke(params);
+    var response = invoker.invoke(JsonRpcRequest.request("test", params, TEST_ID));
 
-    assertThat(result.asString()).isEqualTo("World");
+    assertThat(response.result().asString()).isEqualTo("World");
   }
 
   @Test
@@ -93,7 +96,7 @@ class JsonRpcParamResolverTest {
     var invoker =
         new JsonMethodInvoker(mapper, service, method, List.of(firstResolver, secondResolver));
     var params = JsonNodeFactory.instance.objectNode().put("name", "World");
-    invoker.invoke(params);
+    invoker.invoke(JsonRpcRequest.request("test", params, TEST_ID));
 
     assertThat(first).hasToString("firstcalled");
     assertThat(second).hasToString("second");

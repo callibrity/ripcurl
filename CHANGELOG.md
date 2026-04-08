@@ -1,16 +1,19 @@
 # Changelog
 
-## 0.6.0
+## 0.7.0
+
+### Breaking Changes
+- `JsonRpcMethod.call()` now takes `JsonRpcRequest` and returns `JsonRpcResponse` (was `JsonNode call(JsonNode params)`)
+- `JsonMethodInvoker.invoke()` now takes `JsonRpcRequest` and returns `JsonRpcResponse`
+- Handlers returning `JsonRpcResponse` directly are passed through without re-wrapping
 
 ### New Features
-- `JsonRpcResponse` metadata — `@JsonIgnore`d metadata map for transport-level hints (e.g., SSE emitters). Access via `getMetadata(name, type)` returning `Optional<T>`. Build immutably with `withMetadata(name, value)`.
+- Handlers can return `JsonRpcResponse` directly to control the full response including metadata
+- `JsonRpcResponse` metadata — `@JsonIgnore`d metadata map for transport-level hints. Access via `getMetadata(name, type)` returning `Optional<T>`. Build immutably with `withMetadata(name, value)`.
 - `JsonRpcRequest.request(method, params, id)` — static factory for requests
-- `JsonRpcRequest.notification(method, params)` — static factory for notifications (null id)
-- `JsonRpcResponse(result, id)` — convenience constructor that sets version automatically
+- `JsonRpcRequest.notification(method, params)` — static factory for notifications
+- `JsonRpcResponse(result, id)` — convenience constructor with version set automatically
 - `JsonRpcProtocol.VERSION` — public constant for the JSON-RPC 2.0 version string
-
-### Cleanup
-- Removed redundant `VALID_JSONRPC_VERSION` constant from `DefaultJsonRpcDispatcher`
 
 ## 0.3.0
 

@@ -15,6 +15,8 @@
  */
 package com.callibrity.ripcurl.core.invoke;
 
+import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -56,14 +58,20 @@ public class JsonMethodInvoker {
 
   // -------------------------- OTHER METHODS --------------------------
 
-  public JsonNode invoke(JsonNode parameters) {
-    var arguments = resolveArguments(parameters);
+  public JsonRpcResponse invoke(JsonRpcRequest request) {
+    var arguments = resolveArguments(request.params());
     try {
       var result = method.invoke(targetObject, arguments);
-      if (Void.TYPE.equals(method.getReturnType()) || Void.class.equals(method.getReturnType())) {
-        return NullNode.getInstance();
+      if (result instanceof JsonRpcResponse response) {
+        return response;
       }
-      return mapper.valueToTree(result);
+      JsonNode jsonResult;
+      if (Void.TYPE.equals(method.getReturnType()) || Void.class.equals(method.getReturnType())) {
+        jsonResult = NullNode.getInstance();
+      } else {
+        jsonResult = mapper.valueToTree(result);
+      }
+      return new JsonRpcResponse(jsonResult, request.id());
     } catch (InvocationTargetException e) {
       if (e.getTargetException() instanceof JsonRpcException jre) {
         throw jre;

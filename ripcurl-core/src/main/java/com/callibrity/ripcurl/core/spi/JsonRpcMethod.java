@@ -15,9 +15,11 @@
  */
 package com.callibrity.ripcurl.core.spi;
 
-import tools.jackson.databind.JsonNode;
+import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 
 public interface JsonRpcMethod {
+
   /**
    * Returns the name of the JSON-RPC method.
    *
@@ -26,10 +28,10 @@ public interface JsonRpcMethod {
   String methodName();
 
   /**
-   * Executes the JSON-RPC method with the given parameters.
+   * Executes the JSON-RPC method with the given request.
    *
-   * @param params the parameters to be passed to the JSON-RPC method, represented as a JsonNode
-   * @return the result of the JSON-RPC method execution, represented as a JsonNode
+   * @param request the JSON-RPC request
+   * @return the JSON-RPC response
    */
-  JsonNode call(JsonNode params);
+  JsonRpcResponse call(JsonRpcRequest request);
 }
