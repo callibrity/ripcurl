@@ -102,7 +102,8 @@ class JsonMethodInvokerTest {
     var params = JsonNodeFactory.instance.objectNode();
     params.put("input", "Hello");
 
-    assertThatThrownBy(() -> invoker.invoke(request(params)))
+    var req = request(params);
+    assertThatThrownBy(() -> invoker.invoke(req))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INTERNAL_ERROR);
@@ -134,7 +135,8 @@ class JsonMethodInvokerTest {
     params.putObject("b");
 
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
-    assertThatThrownBy(() -> invoker.invoke(request(params)))
+    var req = request(params);
+    assertThatThrownBy(() -> invoker.invoke(req))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INVALID_PARAMS);
@@ -241,7 +243,8 @@ class JsonMethodInvokerTest {
     JsonMethodInvoker invoker = new JsonMethodInvoker(mapper, service, method);
     var params = JsonNodeFactory.instance.objectNode();
     params.put("input", "Hello");
-    assertThatThrownBy(() -> invoker.invoke(request(params)))
+    var req = request(params);
+    assertThatThrownBy(() -> invoker.invoke(req))
         .isExactlyInstanceOf(JsonRpcException.class)
         .hasMessage("I don't like you!");
   }
@@ -255,7 +258,8 @@ class JsonMethodInvokerTest {
     var params = JsonNodeFactory.instance.objectNode();
     params.put("input", "test");
 
-    assertThatThrownBy(() -> invoker.invoke(request(params)))
+    var req = request(params);
+    assertThatThrownBy(() -> invoker.invoke(req))
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INTERNAL_ERROR);
