@@ -99,6 +99,14 @@ class JsonParamResolverTest {
   }
 
   @Test
+  void resolveWithArrayParamsNullElementReturnsNull() throws Exception {
+    var param = paramOf("echo", 0);
+    var params = JsonNodeFactory.instance.arrayNode();
+    params.add(NullNode.getInstance());
+    assertThat(resolver.resolve(param, 0, params)).isNull();
+  }
+
+  @Test
   void resolveWithUnsupportedParamsTypeThrows() throws Exception {
     var param = paramOf("echo", 0);
     var params = StringNode.valueOf("not an object or array");
