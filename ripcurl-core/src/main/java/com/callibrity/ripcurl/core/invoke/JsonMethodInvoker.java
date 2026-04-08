@@ -19,7 +19,7 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -33,7 +33,6 @@ public class JsonMethodInvoker {
   private final ObjectMapper mapper;
   private final Object targetObject;
   private final Method method;
-  private final List<JsonParameterMapper> parameterMappers;
   private final List<JsonRpcParamResolver> resolvers;
 
   // --------------------------- CONSTRUCTORS ---------------------------
@@ -50,17 +49,15 @@ public class JsonMethodInvoker {
     this.mapper = mapper;
     this.targetObject = targetObject;
     this.method = method;
-    this.resolvers = List.copyOf(resolvers);
-    this.parameterMappers =
-        Arrays.stream(method.getParameters())
-            .map(p -> new JsonParameterMapper(mapper, targetObject, p))
-            .toList();
+    var allResolvers = new ArrayList<>(resolvers);
+    allResolvers.add(new JsonParamResolver(mapper, targetObject.getClass()));
+    this.resolvers = List.copyOf(allResolvers);
   }
 
   // -------------------------- OTHER METHODS --------------------------
 
   public JsonNode invoke(JsonNode parameters) {
-    var arguments = parseJsonParameters(parameters);
+    var arguments = resolveArguments(parameters);
     try {
       var result = method.invoke(targetObject, arguments);
       if (Void.TYPE.equals(method.getReturnType()) || Void.class.equals(method.getReturnType())) {
@@ -83,52 +80,25 @@ public class JsonMethodInvoker {
     }
   }
 
-  private Object[] parseJsonParameters(JsonNode parameters) {
-    if (parameterMappers.isEmpty()) {
+  private Object[] resolveArguments(JsonNode parameters) {
+    var methodParams = method.getParameters();
+    if (methodParams.length == 0) {
       return EMPTY_ARGS;
     }
-    var methodParams = method.getParameters();
-    var args = new Object[parameterMappers.size()];
-    for (int i = 0; i < parameterMappers.size(); i++) {
-      Object resolved = resolveFromResolvers(methodParams[i]);
-      if (resolved != null) {
-        args[i] = resolved;
-      } else {
-        args[i] = resolveFromJson(parameters, i);
-      }
+    var args = new Object[methodParams.length];
+    for (int i = 0; i < methodParams.length; i++) {
+      args[i] = resolveParameter(methodParams[i], i, parameters);
     }
     return args;
   }
 
-  private Object resolveFromResolvers(Parameter parameter) {
+  private Object resolveParameter(Parameter parameter, int index, JsonNode params) {
     for (JsonRpcParamResolver resolver : resolvers) {
-      Object value = resolver.resolve(parameter);
+      Object value = resolver.resolve(parameter, index, params);
       if (value != null) {
         return value;
       }
     }
     return null;
-  }
-
-  private Object resolveFromJson(JsonNode parameters, int index) {
-    if (parameters == null || parameters.isNull()) {
-      return null;
-    }
-    return switch (parameters.getNodeType()) {
-      case OBJECT ->
-          parameterMappers
-              .get(index)
-              .mapParameter(parameters.get(parameterMappers.get(index).getParameterName()));
-      case ARRAY -> {
-        if (index < parameters.size()) {
-          yield parameterMappers.get(index).mapParameter(parameters.get(index));
-        }
-        yield parameterMappers.get(index).mapParameter(NullNode.getInstance());
-      }
-      default ->
-          throw new JsonRpcException(
-              JsonRpcException.INVALID_PARAMS,
-              String.format("Unsupported JSON-RPC parameters type %s.", parameters.getNodeType()));
-    };
   }
 }

@@ -43,7 +43,8 @@ class JsonRpcParamResolverTest {
     var context = new StringBuilder();
 
     JsonRpcParamResolver contextResolver =
-        parameter -> StringBuilder.class.equals(parameter.getType()) ? context : null;
+        (parameter, index, params) ->
+            StringBuilder.class.equals(parameter.getType()) ? context : null;
 
     var invoker = new JsonMethodInvoker(mapper, service, method, List.of(contextResolver));
     var params = JsonNodeFactory.instance.objectNode().put("name", "World");
@@ -64,7 +65,7 @@ class JsonRpcParamResolverTest {
     var service = new SimpleService();
     var method = MethodUtils.getMatchingMethod(SimpleService.class, "echo", String.class);
 
-    JsonRpcParamResolver noopResolver = parameter -> null;
+    JsonRpcParamResolver noopResolver = (parameter, index, params) -> null;
 
     var invoker = new JsonMethodInvoker(mapper, service, method, List.of(noopResolver));
     var params = JsonNodeFactory.instance.objectNode().put("input", "World");
@@ -83,9 +84,11 @@ class JsonRpcParamResolverTest {
     var second = new StringBuilder("second");
 
     JsonRpcParamResolver firstResolver =
-        parameter -> StringBuilder.class.equals(parameter.getType()) ? first : null;
+        (parameter, index, params) ->
+            StringBuilder.class.equals(parameter.getType()) ? first : null;
     JsonRpcParamResolver secondResolver =
-        parameter -> StringBuilder.class.equals(parameter.getType()) ? second : null;
+        (parameter, index, params) ->
+            StringBuilder.class.equals(parameter.getType()) ? second : null;
 
     var invoker =
         new JsonMethodInvoker(mapper, service, method, List.of(firstResolver, secondResolver));
