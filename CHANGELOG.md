@@ -1,16 +1,16 @@
 # Changelog
 
-## 0.5.0
+## 0.6.0
 
 ### New Features
-- `JsonRpcRequest.request(method, params, id)` — static factory for requests with version set automatically
+- `JsonRpcResponse` metadata — `@JsonIgnore`d metadata map for transport-level hints (e.g., SSE emitters). Access via `getMetadata(name, type)` returning `Optional<T>`. Build immutably with `withMetadata(name, value)`.
+- `JsonRpcRequest.request(method, params, id)` — static factory for requests
 - `JsonRpcRequest.notification(method, params)` — static factory for notifications (null id)
-- `JsonRpcResponse(result, id)` — convenience constructor that sets `jsonrpc` to `"2.0"` automatically
+- `JsonRpcResponse(result, id)` — convenience constructor that sets version automatically
 - `JsonRpcProtocol.VERSION` — public constant for the JSON-RPC 2.0 version string
 
 ### Cleanup
 - Removed redundant `VALID_JSONRPC_VERSION` constant from `DefaultJsonRpcDispatcher`
-- Removed convenience constructors on `JsonRpcRequest` in favor of static factories
 
 ## 0.3.0
 

@@ -15,10 +15,29 @@
  */
 package com.callibrity.ripcurl.core;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.Map;
+import java.util.Optional;
 import tools.jackson.databind.JsonNode;
 
-public record JsonRpcResponse(String jsonrpc, JsonNode result, JsonNode id) {
+public record JsonRpcResponse(
+    String jsonrpc, JsonNode result, JsonNode id, @JsonIgnore Map<String, Object> metadata) {
+
   public JsonRpcResponse(JsonNode result, JsonNode id) {
-    this(JsonRpcProtocol.VERSION, result, id);
+    this(JsonRpcProtocol.VERSION, result, id, Map.of());
+  }
+
+  public JsonRpcResponse(String jsonrpc, JsonNode result, JsonNode id) {
+    this(jsonrpc, result, id, Map.of());
+  }
+
+  public JsonRpcResponse withMetadata(String name, Object value) {
+    var copy = new java.util.HashMap<>(metadata);
+    copy.put(name, value);
+    return new JsonRpcResponse(jsonrpc, result, id, Map.copyOf(copy));
+  }
+
+  public <T> Optional<T> getMetadata(String name, Class<T> type) {
+    return Optional.ofNullable(metadata.get(name)).map(type::cast);
   }
 }
