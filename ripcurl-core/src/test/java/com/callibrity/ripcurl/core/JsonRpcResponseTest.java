@@ -94,9 +94,10 @@ class JsonRpcResponseTest {
     var mapper = new tools.jackson.databind.ObjectMapper();
     var json = mapper.writeValueAsString(response);
 
-    assertThat(json).doesNotContain("secret");
-    assertThat(json).doesNotContain("hidden");
-    assertThat(json).doesNotContain("metadata");
-    assertThat(json).contains("hello");
+    assertThat(json)
+        .doesNotContain("secret")
+        .doesNotContain("hidden")
+        .doesNotContain("metadata")
+        .contains("hello");
   }
 }
