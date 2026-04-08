@@ -18,6 +18,7 @@ package com.callibrity.ripcurl.core.def;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
@@ -34,7 +35,7 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
   // ------------------------------ FIELDS ------------------------------
 
-  public static final String VALID_JSONRPC_VERSION = "2.0";
+  public static final String VALID_JSONRPC_VERSION = JsonRpcProtocol.VERSION;
 
   private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
 
