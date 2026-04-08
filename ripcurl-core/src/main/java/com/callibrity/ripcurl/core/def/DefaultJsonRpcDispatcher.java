@@ -33,10 +33,6 @@ import tools.jackson.databind.node.JsonNodeType;
 
 public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
-  // ------------------------------ FIELDS ------------------------------
-
-  public static final String VALID_JSONRPC_VERSION = JsonRpcProtocol.VERSION;
-
   private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
 
   // --------------------------- CONSTRUCTORS ---------------------------
@@ -56,10 +52,10 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
   @Override
   public JsonRpcResponse dispatch(JsonRpcRequest request) {
-    if (!VALID_JSONRPC_VERSION.equals(request.jsonrpc())) {
+    if (!JsonRpcProtocol.VERSION.equals(request.jsonrpc())) {
       throw new JsonRpcException(
           JsonRpcException.INVALID_REQUEST,
-          String.format("jsonrpc value must be \"%s\".", VALID_JSONRPC_VERSION));
+          String.format("jsonrpc value must be \"%s\".", JsonRpcProtocol.VERSION));
     }
     if (StringUtils.isBlank(request.method())) {
       throw new JsonRpcException(
@@ -87,6 +83,6 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
     if (request.id() == null) {
       return null;
     }
-    return new JsonRpcResponse(VALID_JSONRPC_VERSION, result, request.id());
+    return new JsonRpcResponse(JsonRpcProtocol.VERSION, result, request.id());
   }
 }
