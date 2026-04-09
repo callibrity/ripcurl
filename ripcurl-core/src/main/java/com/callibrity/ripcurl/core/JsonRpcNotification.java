@@ -17,9 +17,12 @@ package com.callibrity.ripcurl.core;
 
 import tools.jackson.databind.JsonNode;
 
-/** Sealed base for JSON-RPC 2.0 response types. */
-public sealed interface JsonRpcResponse extends JsonRpcMessage permits JsonRpcResult, JsonRpcError {
-  String jsonrpc();
+/** A JSON-RPC 2.0 notification — a request with no id (fire-and-forget). */
+public record JsonRpcNotification(String jsonrpc, String method, JsonNode params)
+    implements JsonRpcMessage {
 
-  JsonNode id();
+  /** Creates a notification with the version set automatically. */
+  public static JsonRpcNotification of(String method, JsonNode params) {
+    return new JsonRpcNotification(JsonRpcProtocol.VERSION, method, params);
+  }
 }
