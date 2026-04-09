@@ -16,7 +16,6 @@
 package com.callibrity.ripcurl.core;
 
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Sealed base for all JSON-RPC 2.0 message types. Use {@link #parse(JsonNode, ObjectMapper)} to
@@ -35,7 +34,7 @@ public sealed interface JsonRpcMessage
    * @return the parsed message
    * @throws IllegalArgumentException if the message cannot be classified
    */
-  static JsonRpcMessage parse(JsonNode body, ObjectMapper mapper) {
+  static JsonRpcMessage parse(JsonNode body) {
     if (body.has("method")) {
       String jsonrpc = body.path("jsonrpc").asString(null);
       String method = body.path("method").asString(null);
@@ -46,11 +45,16 @@ public sealed interface JsonRpcMessage
       }
       return new JsonRpcRequest(jsonrpc, method, params, id);
     }
+    JsonNode id = body.get("id");
     if (body.has("result")) {
-      return mapper.treeToValue(body, JsonRpcResult.class);
+      return new JsonRpcResult(body.get("result"), id);
     }
     if (body.has("error")) {
-      return mapper.treeToValue(body, JsonRpcError.class);
+      JsonNode errorNode = body.get("error");
+      return new JsonRpcError(
+          new JsonRpcErrorDetail(
+              errorNode.path("code").intValue(), errorNode.path("message").asString(null)),
+          id);
     }
     throw new IllegalArgumentException("Unrecognized JSON-RPC message");
   }

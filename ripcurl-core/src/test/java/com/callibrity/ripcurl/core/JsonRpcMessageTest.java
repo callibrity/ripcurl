@@ -32,7 +32,7 @@ class JsonRpcMessageTest {
             """
         {"jsonrpc":"2.0","method":"subtract","params":{"a":1},"id":1}
         """);
-    var message = JsonRpcMessage.parse(body, MAPPER);
+    var message = JsonRpcMessage.parse(body);
     assertThat(message).isInstanceOf(JsonRpcRequest.class);
     var request = (JsonRpcRequest) message;
     assertThat(request.method()).isEqualTo("subtract");
@@ -46,7 +46,7 @@ class JsonRpcMessageTest {
             """
         {"jsonrpc":"2.0","method":"update","params":[1,2,3]}
         """);
-    var message = JsonRpcMessage.parse(body, MAPPER);
+    var message = JsonRpcMessage.parse(body);
     assertThat(message).isInstanceOf(JsonRpcNotification.class);
     var notification = (JsonRpcNotification) message;
     assertThat(notification.method()).isEqualTo("update");
@@ -60,7 +60,7 @@ class JsonRpcMessageTest {
             """
         {"jsonrpc":"2.0","result":19,"id":1}
         """);
-    var message = JsonRpcMessage.parse(body, MAPPER);
+    var message = JsonRpcMessage.parse(body);
     assertThat(message).isInstanceOf(JsonRpcResult.class);
     var result = (JsonRpcResult) message;
     assertThat(result.result().intValue()).isEqualTo(19);
@@ -74,7 +74,7 @@ class JsonRpcMessageTest {
             """
         {"jsonrpc":"2.0","error":{"code":-32601,"message":"Not found"},"id":1}
         """);
-    var message = JsonRpcMessage.parse(body, MAPPER);
+    var message = JsonRpcMessage.parse(body);
     assertThat(message).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) message;
     assertThat(error.error().code()).isEqualTo(-32601);
@@ -88,7 +88,7 @@ class JsonRpcMessageTest {
             """
         {"jsonrpc":"2.0","unknown":"field"}
         """);
-    assertThatThrownBy(() -> JsonRpcMessage.parse(body, MAPPER))
+    assertThatThrownBy(() -> JsonRpcMessage.parse(body))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -123,10 +123,10 @@ class JsonRpcMessageTest {
         {"jsonrpc":"2.0","error":{"code":-1,"message":"bad"},"id":1}
         """);
 
-    assertThat(describe(JsonRpcMessage.parse(request, MAPPER))).isEqualTo("request");
-    assertThat(describe(JsonRpcMessage.parse(notification, MAPPER))).isEqualTo("notification");
-    assertThat(describe(JsonRpcMessage.parse(result, MAPPER))).isEqualTo("result");
-    assertThat(describe(JsonRpcMessage.parse(error, MAPPER))).isEqualTo("error");
+    assertThat(describe(JsonRpcMessage.parse(request))).isEqualTo("request");
+    assertThat(describe(JsonRpcMessage.parse(notification))).isEqualTo("notification");
+    assertThat(describe(JsonRpcMessage.parse(result))).isEqualTo("result");
+    assertThat(describe(JsonRpcMessage.parse(error))).isEqualTo("error");
   }
 
   private String describe(JsonRpcMessage message) {
