@@ -76,6 +76,11 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
         return null;
       }
       return new JsonRpcError(e.getCode(), e.getMessage(), request.id());
+    } catch (RuntimeException e) {
+      if (request.id() == null) {
+        return null;
+      }
+      return new JsonRpcError(JsonRpcException.INTERNAL_ERROR, e.getMessage(), request.id());
     }
   }
 

@@ -62,6 +62,11 @@ class DefaultJsonRpcDispatcherTest {
       throw new JsonRpcException(
           JsonRpcException.INTERNAL_ERROR, "caused", new RuntimeException("root"));
     }
+
+    @JsonRpcMethod
+    public String throwsRuntimeException(String name) {
+      throw new IllegalStateException("something broke");
+    }
   }
 
   @Test
@@ -264,6 +269,24 @@ class DefaultJsonRpcDispatcherTest {
     assertThat(response).isInstanceOf(JsonRpcError.class);
     assertThat(((JsonRpcError) response).error().code())
         .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
+  }
+
+  @Test
+  void unexpectedRuntimeExceptionShouldReturnInternalError() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var id = StringNode.valueOf("u1");
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.throwsRuntimeException",
+                MAPPER.createObjectNode().put("name", "World"),
+                id));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    var error = (JsonRpcError) response;
+    assertThat(error.error().code()).isEqualTo(JsonRpcException.INTERNAL_ERROR);
+    assertThat(error.error().message()).isEqualTo("something broke");
+    assertThat(error.id()).isEqualTo(id);
   }
 
   @Test
