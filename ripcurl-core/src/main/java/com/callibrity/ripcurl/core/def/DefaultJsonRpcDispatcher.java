@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.jwcarman.methodical.MethodInvocationException;
 import tools.jackson.databind.node.JsonNodeType;
 
 public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
@@ -65,8 +66,12 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
         return null;
       }
       return response;
+    } catch (MethodInvocationException e) {
+      if (request.id() == null) {
+        return null;
+      }
+      return new JsonRpcError(JsonRpcException.INVALID_PARAMS, e.getMessage(), request.id());
     } catch (JsonRpcException e) {
-      // Notifications get no error response either
       if (request.id() == null) {
         return null;
       }
