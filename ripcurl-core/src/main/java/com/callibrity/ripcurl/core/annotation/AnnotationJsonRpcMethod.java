@@ -63,17 +63,12 @@ public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.
     this.mapper = mapper;
     this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
     var annotation = method.getAnnotation(JsonRpcMethod.class);
+    String className = ClassUtils.getSimpleName(targetObject);
+    String methodName = method.getName();
     this.name =
         ofNullable(StringUtils.trimToNull(annotation.value()))
-            .orElseGet(
-                () ->
-                    String.format(
-                        "%s.%s", ClassUtils.getSimpleName(targetObject), method.getName()));
-    log.debug(
-        "Discovered @JsonRpcMethod '{}' on {}.{}",
-        this.name,
-        ClassUtils.getSimpleName(targetObject),
-        method.getName());
+            .orElseGet(() -> String.format("%s.%s", className, methodName));
+    log.debug("Discovered @JsonRpcMethod '{}' on {}.{}", this.name, className, methodName);
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
