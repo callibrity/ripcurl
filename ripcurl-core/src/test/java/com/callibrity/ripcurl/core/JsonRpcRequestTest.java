@@ -45,4 +45,23 @@ class JsonRpcRequestTest {
     assertThat(request.params()).isSameAs(params);
     assertThat(request.id()).isNull();
   }
+
+  @Test
+  void responseShouldEchoId() {
+    var id = StringNode.valueOf("42");
+    var request = JsonRpcRequest.request("test", null, id);
+    var result = request.response(StringNode.valueOf("ok"));
+    assertThat(result.id()).isSameAs(id);
+    assertThat(result.result()).isEqualTo(StringNode.valueOf("ok"));
+  }
+
+  @Test
+  void errorShouldEchoId() {
+    var id = StringNode.valueOf("42");
+    var request = JsonRpcRequest.request("test", null, id);
+    var error = request.error(-32601, "Not found");
+    assertThat(error.id()).isSameAs(id);
+    assertThat(error.error().code()).isEqualTo(-32601);
+    assertThat(error.error().message()).isEqualTo("Not found");
+  }
 }

@@ -59,7 +59,8 @@ class DefaultJsonRpcDispatcherTest {
 
     @JsonRpcMethod
     public String throwsException(String name) {
-      throw new JsonRpcException(JsonRpcException.INTERNAL_ERROR, "caused");
+      throw new JsonRpcException(
+          JsonRpcException.INTERNAL_ERROR, "caused", new RuntimeException("root"));
     }
   }
 
