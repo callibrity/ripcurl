@@ -65,7 +65,7 @@ public interface JsonRpcDispatcher {
       return executor.invokeAll(callables).stream().map(Future::resultNow).toList();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      return List.of();
+      throw new IllegalStateException("Batch dispatch interrupted", e);
     }
   }
 }
