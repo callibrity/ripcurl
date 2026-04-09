@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.JsonRpcRequest;
+import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -42,6 +43,23 @@ class DefaultJsonRpcDispatcherTest {
     @JsonRpcMethod
     public String sayHello(String name) {
       return String.format("Hello, %s!", name);
+    }
+
+    @JsonRpcMethod
+    public void fireAndForget(String name) {
+      // no-op
+    }
+
+    @JsonRpcMethod
+    public JsonRpcResponse rawResponse(String name) {
+      return new JsonRpcResponse(StringNode.valueOf("raw:" + name), StringNode.valueOf("custom-id"))
+          .withMetadata("test", true);
+    }
+
+    @JsonRpcMethod
+    public String throwWithCause(String name) throws Exception {
+      throw new JsonRpcException(
+          JsonRpcException.INTERNAL_ERROR, "caused", new RuntimeException("root"));
     }
   }
 
@@ -153,6 +171,55 @@ class DefaultJsonRpcDispatcherTest {
         .isExactlyInstanceOf(JsonRpcException.class)
         .extracting("code")
         .isEqualTo(JsonRpcException.INVALID_REQUEST);
+  }
+
+  @Test
+  void voidMethodShouldReturnNullResult() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var id = StringNode.valueOf("v1");
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.fireAndForget",
+                MAPPER.createObjectNode().put("name", "World"),
+                id));
+    assertThat(response).isNotNull();
+    assertThat(response.result().isNull()).isTrue();
+  }
+
+  @Test
+  void handlerReturningJsonRpcResponseShouldPassThrough() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var id = StringNode.valueOf("r1");
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.rawResponse",
+                MAPPER.createObjectNode().put("name", "World"),
+                id));
+    assertThat(response).isNotNull();
+    assertThat(response.result().asString()).isEqualTo("raw:World");
+    assertThat(response.id()).isEqualTo(StringNode.valueOf("custom-id"));
+    assertThat(response.getMetadata("test", Boolean.class)).hasValue(true);
+  }
+
+  @Test
+  void exceptionWithCauseShouldPropagate() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var id = StringNode.valueOf("e1");
+    var request =
+        new JsonRpcRequest(
+            "2.0",
+            "HelloService.throwWithCause",
+            MAPPER.createObjectNode().put("name", "World"),
+            id);
+    assertThatThrownBy(() -> service.dispatch(request))
+        .isExactlyInstanceOf(JsonRpcException.class)
+        .hasMessage("caused")
+        .extracting("code")
+        .isEqualTo(JsonRpcException.INTERNAL_ERROR);
   }
 
   @Test
