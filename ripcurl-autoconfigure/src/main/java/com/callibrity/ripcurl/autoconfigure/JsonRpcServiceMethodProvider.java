@@ -17,11 +17,11 @@ package com.callibrity.ripcurl.autoconfigure;
 
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
-import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
+import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.context.ApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
@@ -33,15 +33,15 @@ public class JsonRpcServiceMethodProvider implements JsonRpcMethodProvider {
 
   private final ApplicationContext ctx;
   private final ObjectMapper mapper;
-  private final List<JsonRpcParamResolver> resolvers;
+  private final MethodInvokerFactory invokerFactory;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
   public JsonRpcServiceMethodProvider(
-      ApplicationContext ctx, ObjectMapper mapper, List<JsonRpcParamResolver> resolvers) {
+      ApplicationContext ctx, ObjectMapper mapper, MethodInvokerFactory invokerFactory) {
     this.ctx = ctx;
     this.mapper = mapper;
-    this.resolvers = resolvers;
+    this.invokerFactory = invokerFactory;
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -60,7 +60,8 @@ public class JsonRpcServiceMethodProvider implements JsonRpcMethodProvider {
     this.methods =
         ctx.getBeansWithAnnotation(JsonRpcService.class).values().stream()
             .flatMap(
-                bean -> AnnotationJsonRpcMethod.createMethods(mapper, bean, resolvers).stream())
+                bean ->
+                    AnnotationJsonRpcMethod.createMethods(mapper, bean, invokerFactory).stream())
             .toList();
   }
 }

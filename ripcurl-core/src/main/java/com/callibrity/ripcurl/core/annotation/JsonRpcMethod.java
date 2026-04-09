@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-public @interface JsonRpc {
+public @interface JsonRpcMethod {
   /**
    * Specifies the name associated with the JSON-RPC method.
    *

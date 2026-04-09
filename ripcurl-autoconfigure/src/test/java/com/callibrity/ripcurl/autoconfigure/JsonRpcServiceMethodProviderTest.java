@@ -17,11 +17,13 @@ package com.callibrity.ripcurl.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,12 +33,12 @@ class JsonRpcServiceMethodProviderTest {
 
   @JsonRpcService
   public static class TestService {
-    @JsonRpc("test.hello")
+    @com.callibrity.ripcurl.core.annotation.JsonRpcMethod("test.hello")
     public String hello(String name) {
       return "Hello, " + name + "!";
     }
 
-    @JsonRpc("test.ping")
+    @com.callibrity.ripcurl.core.annotation.JsonRpcMethod("test.ping")
     public String ping() {
       return "pong";
     }
@@ -55,11 +57,15 @@ class JsonRpcServiceMethodProviderTest {
     }
   }
 
+  private static MethodInvokerFactory createInvokerFactory(ObjectMapper mapper) {
+    return new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(mapper)));
+  }
+
   @Test
   void shouldDiscoverJsonRpcServiceMethods() {
     try (var ctx = new AnnotationConfigApplicationContext(TestConfig.class)) {
-      var provider =
-          new JsonRpcServiceMethodProvider(ctx, ctx.getBean(ObjectMapper.class), List.of());
+      var mapper = ctx.getBean(ObjectMapper.class);
+      var provider = new JsonRpcServiceMethodProvider(ctx, mapper, createInvokerFactory(mapper));
       provider.initialize();
 
       List<JsonRpcMethod> methods = provider.getJsonRpcMethodHandlers();
@@ -76,7 +82,8 @@ class JsonRpcServiceMethodProviderTest {
       ctx.register(EmptyConfig.class);
       ctx.refresh();
 
-      var provider = new JsonRpcServiceMethodProvider(ctx, new ObjectMapper(), List.of());
+      var mapper = new ObjectMapper();
+      var provider = new JsonRpcServiceMethodProvider(ctx, mapper, createInvokerFactory(mapper));
       provider.initialize();
 
       assertThat(provider.getJsonRpcMethodHandlers()).isEmpty();

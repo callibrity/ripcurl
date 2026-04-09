@@ -19,10 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.autoconfigure.Jackson3AutoConfiguration;
+import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -33,11 +35,14 @@ class RipCurlAutoConfigurationTest {
       new ApplicationContextRunner()
           .withConfiguration(
               AutoConfigurations.of(
-                  JacksonAutoConfiguration.class, RipCurlAutoConfiguration.class));
+                  JacksonAutoConfiguration.class,
+                  Jackson3AutoConfiguration.class,
+                  MethodicalAutoConfiguration.class,
+                  RipCurlAutoConfiguration.class));
 
   @JsonRpcService
   public static class TestService {
-    @JsonRpc("test.hello")
+    @JsonRpcMethod("test.hello")
     public String hello(String name) {
       return "Hello, " + name + "!";
     }

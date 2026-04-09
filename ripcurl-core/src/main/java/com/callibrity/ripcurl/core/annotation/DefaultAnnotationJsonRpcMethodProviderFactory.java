@@ -15,9 +15,9 @@
  */
 package com.callibrity.ripcurl.core.annotation;
 
-import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.util.List;
+import org.jwcarman.methodical.MethodInvokerFactory;
 import tools.jackson.databind.ObjectMapper;
 
 public class DefaultAnnotationJsonRpcMethodProviderFactory
@@ -26,14 +26,14 @@ public class DefaultAnnotationJsonRpcMethodProviderFactory
   // ------------------------------ FIELDS ------------------------------
 
   private final ObjectMapper mapper;
-  private final List<JsonRpcParamResolver> resolvers;
+  private final MethodInvokerFactory invokerFactory;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
   public DefaultAnnotationJsonRpcMethodProviderFactory(
-      ObjectMapper mapper, List<JsonRpcParamResolver> resolvers) {
+      ObjectMapper mapper, MethodInvokerFactory invokerFactory) {
     this.mapper = mapper;
-    this.resolvers = List.copyOf(resolvers);
+    this.invokerFactory = invokerFactory;
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -43,7 +43,7 @@ public class DefaultAnnotationJsonRpcMethodProviderFactory
 
   @Override
   public JsonRpcMethodProvider create(Object targetObject) {
-    var methods = AnnotationJsonRpcMethod.createMethods(mapper, targetObject, resolvers);
+    var methods = AnnotationJsonRpcMethod.createMethods(mapper, targetObject, invokerFactory);
     return () -> List.copyOf(methods);
   }
 }

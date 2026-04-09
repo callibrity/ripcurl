@@ -21,21 +21,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
+import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
 class DefaultJsonRpcDispatcherTest {
 
+  private static final ObjectMapper MAPPER = new ObjectMapper();
   private final AnnotationJsonRpcMethodProviderFactory factory =
-      new DefaultAnnotationJsonRpcMethodProviderFactory(new ObjectMapper(), List.of());
+      new DefaultAnnotationJsonRpcMethodProviderFactory(
+          MAPPER, new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(MAPPER))));
 
   public static class HelloService {
-    @JsonRpc
+    @JsonRpcMethod
     public String sayHello(String name) {
       return String.format("Hello, %s!", name);
     }

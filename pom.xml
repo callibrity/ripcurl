@@ -79,6 +79,7 @@
         <license.plugin.version>5.0.0</license.plugin.version>
         <jacoco.plugin.version>0.8.14</jacoco.plugin.version>
         <sonar.plugin.version>5.5.0.6356</sonar.plugin.version>
+        <methodical.version>0.1.0</methodical.version>
 
         <!-- License Header Configuration -->
         <license.owner>Callibrity, Inc.</license.owner>

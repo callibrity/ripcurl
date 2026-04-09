@@ -28,12 +28,19 @@
     <description>RipCurl Core Library</description>
     <dependencies>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
+            <groupId>org.jwcarman.methodical</groupId>
+            <artifactId>methodical-core</artifactId>
+            <version>${methodical.version}</version>
         </dependency>
         <dependency>
             <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jwcarman.methodical</groupId>
+            <artifactId>methodical-jackson3</artifactId>
+            <version>${methodical.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

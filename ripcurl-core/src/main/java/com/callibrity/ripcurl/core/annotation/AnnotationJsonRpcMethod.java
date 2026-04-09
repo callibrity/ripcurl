@@ -19,29 +19,32 @@ import static java.util.Optional.ofNullable;
 
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
-import com.callibrity.ripcurl.core.invoke.JsonMethodInvoker;
-import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
+import org.jwcarman.methodical.MethodInvoker;
+import org.jwcarman.methodical.MethodInvokerFactory;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.NullNode;
 
-public class AnnotationJsonRpcMethod implements JsonRpcMethod {
+public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.JsonRpcMethod {
 
   // ------------------------------ FIELDS ------------------------------
 
   private final String name;
-  private final JsonMethodInvoker invoker;
+  private final MethodInvoker<JsonNode> invoker;
+  private final ObjectMapper mapper;
 
   // -------------------------- STATIC METHODS --------------------------
 
   public static List<AnnotationJsonRpcMethod> createMethods(
-      ObjectMapper mapper, Object targetObject, List<JsonRpcParamResolver> resolvers) {
-    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), JsonRpc.class).stream()
-        .map(method -> new AnnotationJsonRpcMethod(mapper, targetObject, method, resolvers))
+      ObjectMapper mapper, Object targetObject, MethodInvokerFactory invokerFactory) {
+    return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), JsonRpcMethod.class)
+        .stream()
+        .map(method -> new AnnotationJsonRpcMethod(mapper, targetObject, method, invokerFactory))
         .toList();
   }
 
@@ -51,9 +54,10 @@ public class AnnotationJsonRpcMethod implements JsonRpcMethod {
       ObjectMapper mapper,
       Object targetObject,
       Method method,
-      List<JsonRpcParamResolver> resolvers) {
-    this.invoker = new JsonMethodInvoker(mapper, targetObject, method, resolvers);
-    var annotation = method.getAnnotation(JsonRpc.class);
+      MethodInvokerFactory invokerFactory) {
+    this.mapper = mapper;
+    this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
+    var annotation = method.getAnnotation(JsonRpcMethod.class);
     this.name =
         ofNullable(StringUtils.trimToNull(annotation.value()))
             .orElseGet(
@@ -73,6 +77,14 @@ public class AnnotationJsonRpcMethod implements JsonRpcMethod {
 
   @Override
   public JsonRpcResponse call(JsonRpcRequest request) {
-    return invoker.invoke(request);
+    var result = invoker.invoke(request.params());
+    if (result instanceof JsonRpcResponse response) {
+      return response;
+    }
+    if (result == null) {
+      return request.response(NullNode.getInstance());
+    }
+    JsonNode jsonResult = mapper.valueToTree(result);
+    return request.response(jsonResult);
   }
 }

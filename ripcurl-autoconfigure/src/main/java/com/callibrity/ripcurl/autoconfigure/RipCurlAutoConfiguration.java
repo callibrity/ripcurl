@@ -19,10 +19,10 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
-import com.callibrity.ripcurl.core.invoke.JsonRpcParamResolver;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.util.List;
+import org.jwcarman.methodical.MethodInvokerFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -35,8 +35,8 @@ public class RipCurlAutoConfiguration {
 
   @Bean
   public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(
-      ApplicationContext ctx, ObjectMapper mapper, List<JsonRpcParamResolver> resolvers) {
-    return new JsonRpcServiceMethodProvider(ctx, mapper, resolvers);
+      ApplicationContext ctx, ObjectMapper mapper, MethodInvokerFactory invokerFactory) {
+    return new JsonRpcServiceMethodProvider(ctx, mapper, invokerFactory);
   }
 
   @Bean
@@ -51,7 +51,7 @@ public class RipCurlAutoConfiguration {
 
   @Bean
   public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(
-      ObjectMapper objectMapper, List<JsonRpcParamResolver> resolvers) {
-    return new DefaultAnnotationJsonRpcMethodProviderFactory(objectMapper, resolvers);
+      ObjectMapper objectMapper, MethodInvokerFactory invokerFactory) {
+    return new DefaultAnnotationJsonRpcMethodProviderFactory(objectMapper, invokerFactory);
   }
 }
