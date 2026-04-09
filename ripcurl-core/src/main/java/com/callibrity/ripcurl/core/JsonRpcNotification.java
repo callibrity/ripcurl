@@ -15,11 +15,16 @@
  */
 package com.callibrity.ripcurl.core;
 
+import java.util.Objects;
 import tools.jackson.databind.JsonNode;
 
 /** A JSON-RPC 2.0 notification — a request with no id (fire-and-forget). */
 public record JsonRpcNotification(String jsonrpc, String method, JsonNode params)
     implements JsonRpcRequest {
+
+  public JsonRpcNotification {
+    Objects.requireNonNull(method, "method must not be null");
+  }
 
   /** Creates a notification with the version set automatically. */
   public static JsonRpcNotification of(String method, JsonNode params) {

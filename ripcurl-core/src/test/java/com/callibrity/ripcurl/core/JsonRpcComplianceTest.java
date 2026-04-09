@@ -121,10 +121,8 @@ class JsonRpcComplianceTest {
 
     @Test
     void methodMustBePresent() {
-      var response = dispatcher.dispatch(new JsonRpcCall("2.0", null, null, intId(1)));
-      assertThat(response).isInstanceOf(JsonRpcError.class);
-      assertThat(((JsonRpcError) response).error().code())
-          .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
+      assertThatThrownBy(() -> new JsonRpcCall("2.0", null, null, intId(1)))
+          .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -216,6 +214,43 @@ class JsonRpcComplianceTest {
       var response = dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, intId(3)));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
     }
+
+    @Test
+    void paramsMustNotBeString() {
+      var response =
+          dispatcher.dispatch(
+              new JsonRpcCall("2.0", "foobar", StringNode.valueOf("bad"), intId(4)));
+      assertThat(response).isInstanceOf(JsonRpcError.class);
+      assertThat(((JsonRpcError) response).error().code())
+          .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
+    }
+
+    @Test
+    void paramsMustNotBeNumber() {
+      var response =
+          dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", IntNode.valueOf(42), intId(5)));
+      assertThat(response).isInstanceOf(JsonRpcError.class);
+      assertThat(((JsonRpcError) response).error().code())
+          .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
+    }
+
+    @Test
+    void paramsMustNotBeBoolean() {
+      var response =
+          dispatcher.dispatch(
+              new JsonRpcCall(
+                  "2.0", "foobar", MAPPER.getNodeFactory().booleanNode(true), intId(6)));
+      assertThat(response).isInstanceOf(JsonRpcError.class);
+      assertThat(((JsonRpcError) response).error().code())
+          .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
+    }
+
+    @Test
+    void notificationWithInvalidParamsTypeReturnsNull() {
+      var response =
+          dispatcher.dispatch(new JsonRpcNotification("2.0", "foobar", StringNode.valueOf("bad")));
+      assertThat(response).isNull();
+    }
   }
 
   // --- Section 4.2: Response object ---
@@ -270,6 +305,40 @@ class JsonRpcComplianceTest {
       var id = intId(99);
       var response = dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, id));
       assertThat(response.id()).isSameAs(id);
+    }
+
+    @Test
+    void successResponseMustNotContainErrorField() {
+      var response =
+          dispatcher.dispatch(
+              new JsonRpcCall(
+                  "2.0",
+                  "subtract",
+                  MAPPER.createObjectNode().put("minuend", 10).put("subtrahend", 3),
+                  intId(1)));
+      var json = MAPPER.writeValueAsString(response);
+      assertThat(json).contains("\"result\"").doesNotContain("\"error\"");
+    }
+
+    @Test
+    void errorResponseMustNotContainResultField() {
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "nonexistent", null, intId(1)));
+      var json = MAPPER.writeValueAsString(response);
+      assertThat(json).contains("\"error\"").doesNotContain("\"result\"");
+    }
+
+    @Test
+    void successResponseMustContainJsonrpcVersion() {
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, intId(1)));
+      var json = MAPPER.writeValueAsString(response);
+      assertThat(json).contains("\"jsonrpc\":\"2.0\"");
+    }
+
+    @Test
+    void errorResponseMustContainJsonrpcVersion() {
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "nonexistent", null, intId(1)));
+      var json = MAPPER.writeValueAsString(response);
+      assertThat(json).contains("\"jsonrpc\":\"2.0\"");
     }
   }
 

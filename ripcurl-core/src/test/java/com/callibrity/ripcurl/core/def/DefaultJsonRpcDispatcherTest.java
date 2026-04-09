@@ -16,6 +16,7 @@
 package com.callibrity.ripcurl.core.def;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcError;
@@ -137,6 +138,7 @@ class DefaultJsonRpcDispatcherTest {
                 MAPPER.createObjectNode().put("name", "World"),
                 NullNode.getInstance()));
     assertThat(response).isInstanceOf(JsonRpcResult.class);
+    assertThat(response.id()).isEqualTo(NullNode.getInstance());
   }
 
   @Test
@@ -189,17 +191,15 @@ class DefaultJsonRpcDispatcherTest {
   }
 
   @Test
-  void missingMethodShouldReturnError() {
-    var service = new DefaultJsonRpcDispatcher(List.of());
-    var response =
-        service.dispatch(
-            new JsonRpcCall(
-                "2.0",
-                null,
-                MAPPER.createObjectNode().put("name", "World"),
-                StringNode.valueOf("123")));
-    assertThat(response).isInstanceOf(JsonRpcError.class);
-    assertThat(((JsonRpcError) response).error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
+  void nullMethodShouldThrow() {
+    assertThatThrownBy(
+            () ->
+                new JsonRpcCall(
+                    "2.0",
+                    null,
+                    MAPPER.createObjectNode().put("name", "World"),
+                    StringNode.valueOf("123")))
+        .isInstanceOf(NullPointerException.class);
   }
 
   @Test

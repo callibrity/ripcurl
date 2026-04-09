@@ -15,11 +15,18 @@
  */
 package com.callibrity.ripcurl.core;
 
+import java.util.Objects;
 import tools.jackson.databind.JsonNode;
 
 /** A JSON-RPC 2.0 request with an id — expects a response. */
 public record JsonRpcCall(String jsonrpc, String method, JsonNode params, JsonNode id)
     implements JsonRpcRequest {
+
+  public JsonRpcCall {
+    Objects.requireNonNull(method, "method must not be null");
+    Objects.requireNonNull(
+        id, "id must not be null; use JsonRpcNotification for requests without an id");
+  }
 
   /** Creates a JSON-RPC call with the version set automatically. */
   public static JsonRpcCall of(String method, JsonNode params, JsonNode id) {

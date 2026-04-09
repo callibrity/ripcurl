@@ -111,14 +111,20 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
       throw new JsonRpcException(
           JsonRpcProtocol.METHOD_NOT_FOUND, "Methods starting with \"rpc.\" are reserved.");
     }
+    if (request.params() != null && !request.params().isObject() && !request.params().isArray()) {
+      throw new JsonRpcException(
+          JsonRpcProtocol.INVALID_REQUEST,
+          String.format(
+              "Invalid params type (%s). Must be an Object or Array.",
+              request.params().getNodeType()));
+    }
     if (request instanceof JsonRpcCall call) {
       validateId(call);
     }
   }
 
   private void validateId(JsonRpcCall call) {
-    if (call.id() != null
-        && !call.id().isNull()
+    if (!call.id().isNull()
         && call.id().getNodeType() != JsonNodeType.STRING
         && call.id().getNodeType() != JsonNodeType.NUMBER) {
       throw new JsonRpcException(
