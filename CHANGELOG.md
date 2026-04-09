@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+### New Features
+- Batch request support via `dispatchBatch(List<JsonRpcRequest>)` — dispatches requests concurrently on virtual threads, fire-and-forgets notifications
+- Error code constants moved to `JsonRpcProtocol` (PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR)
+- `ParameterResolutionException` handling — deserialization failures return INVALID_PARAMS
+- Comprehensive JSON-RPC 2.0 compliance test suite
+
+### Changes
+- Depends on Methodical 0.2.0 (ParameterResolutionException hierarchy)
+- Error code constants removed from `JsonRpcException` (use `JsonRpcProtocol.*` instead)
+
 ## 1.0.0
 
 ### Breaking Changes

@@ -16,6 +16,7 @@
 package com.callibrity.ripcurl.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -365,6 +366,79 @@ class JsonRpcComplianceTest {
       var params = MAPPER.createObjectNode().put("Minuend", 42).put("Subtrahend", 23);
       var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "subtract", params, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
+    }
+  }
+
+  // --- Section 6: Batch ---
+
+  @Nested
+  class Batch {
+
+    @Test
+    void batchWithMixedRequestsAndNotifications() {
+      var results =
+          dispatcher.dispatchBatch(
+              List.of(
+                  new JsonRpcRequest(
+                      "2.0",
+                      "subtract",
+                      MAPPER.createObjectNode().put("minuend", 42).put("subtrahend", 23),
+                      intId(1)),
+                  new JsonRpcRequest(
+                      "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3), null),
+                  new JsonRpcRequest("2.0", "foobar", null, intId(2))));
+      // Notification excluded, two results returned
+      assertThat(results).hasSize(2);
+      assertThat(results).allSatisfy(r -> assertThat(r).isInstanceOf(JsonRpcResult.class));
+    }
+
+    @Test
+    void batchWithAllNotifications() {
+      var results =
+          dispatcher.dispatchBatch(
+              List.of(
+                  new JsonRpcRequest(
+                      "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3), null),
+                  new JsonRpcRequest(
+                      "2.0", "update", MAPPER.createArrayNode().add(4).add(5).add(6), null)));
+      assertThat(results).isEmpty();
+    }
+
+    @Test
+    void batchWithSingleRequest() {
+      var results =
+          dispatcher.dispatchBatch(List.of(new JsonRpcRequest("2.0", "foobar", null, intId(1))));
+      assertThat(results).hasSize(1);
+      assertThat(results.getFirst()).isInstanceOf(JsonRpcResult.class);
+    }
+
+    @Test
+    void batchWithErrors() {
+      var results =
+          dispatcher.dispatchBatch(
+              List.of(
+                  new JsonRpcRequest("2.0", "foobar", null, intId(1)),
+                  new JsonRpcRequest("2.0", "nonexistent", null, intId(2))));
+      assertThat(results).hasSize(2);
+      assertThat(results.get(0)).isInstanceOf(JsonRpcResult.class);
+      assertThat(results.get(1)).isInstanceOf(JsonRpcError.class);
+    }
+
+    @Test
+    void emptyBatchThrows() {
+      assertThatThrownBy(() -> dispatcher.dispatchBatch(List.of()))
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void batchResponsesContainMatchingIds() {
+      var results =
+          dispatcher.dispatchBatch(
+              List.of(
+                  new JsonRpcRequest("2.0", "foobar", null, intId(10)),
+                  new JsonRpcRequest("2.0", "foobar", null, intId(20))));
+      var ids = results.stream().map(JsonRpcResponse::id).toList();
+      assertThat(ids).containsExactlyInAnyOrder(intId(10), intId(20));
     }
   }
 
