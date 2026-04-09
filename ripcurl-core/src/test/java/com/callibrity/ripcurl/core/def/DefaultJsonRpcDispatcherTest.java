@@ -265,4 +265,18 @@ class DefaultJsonRpcDispatcherTest {
     assertThat(((JsonRpcError) response).error().code())
         .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
   }
+
+  @Test
+  void invalidParamsShouldReturnInvalidParamsError() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var id = StringNode.valueOf("p1");
+    // Pass an object where sayHello expects a String "name" param, but give it an object instead
+    var params = MAPPER.createObjectNode();
+    params.putObject("name"); // object instead of string
+    var response = service.dispatch(new JsonRpcRequest("2.0", "HelloService.sayHello", params, id));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    var error = (JsonRpcError) response;
+    assertThat(error.error().code()).isEqualTo(JsonRpcException.INVALID_PARAMS);
+    assertThat(error.id()).isEqualTo(id);
+  }
 }
