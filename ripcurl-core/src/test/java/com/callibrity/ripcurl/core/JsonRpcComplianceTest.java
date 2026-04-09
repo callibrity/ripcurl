@@ -113,7 +113,7 @@ class JsonRpcComplianceTest {
     void jsonrpcMustBeExactly2point0() {
       var response =
           dispatcher.dispatch(
-              new JsonRpcRequest("2.1", "subtract", MAPPER.createObjectNode(), intId(1)));
+              new JsonRpcCall("2.1", "subtract", MAPPER.createObjectNode(), intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
       assertThat(((JsonRpcError) response).error().code())
           .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
@@ -121,7 +121,7 @@ class JsonRpcComplianceTest {
 
     @Test
     void methodMustBePresent() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", null, null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", null, null, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
       assertThat(((JsonRpcError) response).error().code())
           .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
@@ -129,7 +129,7 @@ class JsonRpcComplianceTest {
 
     @Test
     void methodMustNotBeBlank() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "  ", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "  ", null, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
       assertThat(((JsonRpcError) response).error().code())
           .isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
@@ -137,7 +137,7 @@ class JsonRpcComplianceTest {
 
     @Test
     void rpcPrefixMethodsMustBeRejected() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "rpc.discover", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "rpc.discover", null, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
       assertThat(((JsonRpcError) response).error().code())
           .isEqualTo(JsonRpcProtocol.METHOD_NOT_FOUND);
@@ -146,24 +146,23 @@ class JsonRpcComplianceTest {
     @Test
     void idMayBeString() {
       var response =
-          dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, StringNode.valueOf("abc")));
+          dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, StringNode.valueOf("abc")));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
       assertThat(((JsonRpcResult) response).id()).isEqualTo(StringNode.valueOf("abc"));
     }
 
     @Test
     void idMayBeNumber() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, intId(42)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, intId(42)));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
       assertThat(((JsonRpcResult) response).id()).isEqualTo(intId(42));
     }
 
     @Test
     void idMayBeNull() {
-      // "The value SHOULD normally not be Null" but it's valid — treated as request, not
-      // notification
+      // "The value SHOULD normally not be Null" but it's valid — treated as call, not notification
       var response =
-          dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, NullNode.getInstance()));
+          dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, NullNode.getInstance()));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
       assertThat(((JsonRpcResult) response).id()).isEqualTo(NullNode.getInstance());
     }
@@ -171,14 +170,14 @@ class JsonRpcComplianceTest {
     @Test
     void idMustNotBeObject() {
       var response =
-          dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, MAPPER.createObjectNode()));
+          dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, MAPPER.createObjectNode()));
       assertThat(response).isInstanceOf(JsonRpcError.class);
     }
 
     @Test
     void idMustNotBeArray() {
       var response =
-          dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, MAPPER.createArrayNode()));
+          dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, MAPPER.createArrayNode()));
       assertThat(response).isInstanceOf(JsonRpcError.class);
     }
 
@@ -186,7 +185,7 @@ class JsonRpcComplianceTest {
     void idMustNotBeBoolean() {
       var response =
           dispatcher.dispatch(
-              new JsonRpcRequest("2.0", "foobar", null, MAPPER.getNodeFactory().booleanNode(true)));
+              new JsonRpcCall("2.0", "foobar", null, MAPPER.getNodeFactory().booleanNode(true)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
     }
   }
@@ -199,7 +198,7 @@ class JsonRpcComplianceTest {
     @Test
     void byNameParams() {
       var params = MAPPER.createObjectNode().put("minuend", 42).put("subtrahend", 23);
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "subtract", params, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "subtract", params, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
       assertThat(((JsonRpcResult) response).result().intValue()).isEqualTo(19);
     }
@@ -207,14 +206,14 @@ class JsonRpcComplianceTest {
     @Test
     void byPositionParams() {
       var params = MAPPER.createArrayNode().add(42).add(23);
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "subtract", params, intId(2)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "subtract", params, intId(2)));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
       assertThat(((JsonRpcResult) response).result().intValue()).isEqualTo(19);
     }
 
     @Test
     void paramsAreOptional() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, intId(3)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, intId(3)));
       assertThat(response).isInstanceOf(JsonRpcResult.class);
     }
   }
@@ -228,7 +227,7 @@ class JsonRpcComplianceTest {
     void successResponseHasJsonrpcResultAndId() {
       var response =
           dispatcher.dispatch(
-              new JsonRpcRequest(
+              new JsonRpcCall(
                   "2.0",
                   "subtract",
                   MAPPER.createObjectNode().put("minuend", 10).put("subtrahend", 3),
@@ -256,7 +255,7 @@ class JsonRpcComplianceTest {
 
     @Test
     void errorResponseHasJsonrpcErrorAndId() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "nonexistent", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "nonexistent", null, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
       var error = (JsonRpcError) response;
       assertThat(error.jsonrpc()).isEqualTo("2.0");
@@ -269,7 +268,7 @@ class JsonRpcComplianceTest {
     @Test
     void responseIdMustMatchRequestId() {
       var id = intId(99);
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "foobar", null, id));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "foobar", null, id));
       assertThat(response.id()).isSameAs(id);
     }
   }
@@ -281,7 +280,7 @@ class JsonRpcComplianceTest {
 
     @Test
     void errorHasCodeAndMessage() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "nonexistent", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "nonexistent", null, intId(1)));
       var error = (JsonRpcError) response;
       assertThat(error.error().code()).isNotZero();
       assertThat(error.error().message()).isNotNull();
@@ -299,13 +298,13 @@ class JsonRpcComplianceTest {
 
     @Test
     void invalidRequestErrorCode() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("1.0", "subtract", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("1.0", "subtract", null, intId(1)));
       assertThat(((JsonRpcError) response).error().code()).isEqualTo(-32600);
     }
 
     @Test
     void methodNotFoundErrorCode() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "nonexistent", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "nonexistent", null, intId(1)));
       assertThat(((JsonRpcError) response).error().code()).isEqualTo(-32601);
     }
 
@@ -313,7 +312,7 @@ class JsonRpcComplianceTest {
     void invalidParamsErrorCode() {
       var params = MAPPER.createObjectNode();
       params.putObject("minuend"); // object instead of int
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "subtract", params, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "subtract", params, intId(1)));
       assertThat(((JsonRpcError) response).error().code()).isEqualTo(-32602);
     }
   }
@@ -324,25 +323,25 @@ class JsonRpcComplianceTest {
   class Notifications {
 
     @Test
-    void notificationHasNoId() {
+    void notificationReturnsNull() {
       var response =
           dispatcher.dispatch(
-              new JsonRpcRequest(
-                  "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3), null));
+              new JsonRpcNotification(
+                  "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3)));
       assertThat(response).isNull();
     }
 
     @Test
     void notificationErrorReturnsNull() {
       // Even if the method doesn't exist, notification gets no response
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "nonexistent", null, null));
+      var response = dispatcher.dispatch(new JsonRpcNotification("2.0", "nonexistent", null));
       assertThat(response).isNull();
     }
 
     @Test
     void notificationValidationErrorReturnsNull() {
       // Bad jsonrpc version on a notification still returns null
-      var response = dispatcher.dispatch(new JsonRpcRequest("1.0", "update", null, null));
+      var response = dispatcher.dispatch(new JsonRpcNotification("1.0", "update", null));
       assertThat(response).isNull();
     }
   }
@@ -354,7 +353,7 @@ class JsonRpcComplianceTest {
 
     @Test
     void methodNamesAreCaseSensitive() {
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "Subtract", null, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "Subtract", null, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
       assertThat(((JsonRpcError) response).error().code())
           .isEqualTo(JsonRpcProtocol.METHOD_NOT_FOUND);
@@ -364,7 +363,7 @@ class JsonRpcComplianceTest {
     void parameterNamesAreCaseSensitive() {
       // "Minuend" instead of "minuend" — params not found, null passed to primitive int → error
       var params = MAPPER.createObjectNode().put("Minuend", 42).put("Subtrahend", 23);
-      var response = dispatcher.dispatch(new JsonRpcRequest("2.0", "subtract", params, intId(1)));
+      var response = dispatcher.dispatch(new JsonRpcCall("2.0", "subtract", params, intId(1)));
       assertThat(response).isInstanceOf(JsonRpcError.class);
     }
   }
@@ -375,18 +374,18 @@ class JsonRpcComplianceTest {
   class Batch {
 
     @Test
-    void batchWithMixedRequestsAndNotifications() {
+    void batchWithMixedCallsAndNotifications() {
       var results =
           dispatcher.dispatchBatch(
               List.of(
-                  new JsonRpcRequest(
+                  new JsonRpcCall(
                       "2.0",
                       "subtract",
                       MAPPER.createObjectNode().put("minuend", 42).put("subtrahend", 23),
                       intId(1)),
-                  new JsonRpcRequest(
-                      "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3), null),
-                  new JsonRpcRequest("2.0", "foobar", null, intId(2))));
+                  new JsonRpcNotification(
+                      "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3)),
+                  new JsonRpcCall("2.0", "foobar", null, intId(2))));
       // Notification excluded, two results returned
       assertThat(results)
           .hasSize(2)
@@ -398,17 +397,17 @@ class JsonRpcComplianceTest {
       var results =
           dispatcher.dispatchBatch(
               List.of(
-                  new JsonRpcRequest(
-                      "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3), null),
-                  new JsonRpcRequest(
-                      "2.0", "update", MAPPER.createArrayNode().add(4).add(5).add(6), null)));
+                  new JsonRpcNotification(
+                      "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3)),
+                  new JsonRpcNotification(
+                      "2.0", "update", MAPPER.createArrayNode().add(4).add(5).add(6))));
       assertThat(results).isEmpty();
     }
 
     @Test
-    void batchWithSingleRequest() {
+    void batchWithSingleCall() {
       var results =
-          dispatcher.dispatchBatch(List.of(new JsonRpcRequest("2.0", "foobar", null, intId(1))));
+          dispatcher.dispatchBatch(List.of(new JsonRpcCall("2.0", "foobar", null, intId(1))));
       assertThat(results).hasSize(1);
       assertThat(results.getFirst()).isInstanceOf(JsonRpcResult.class);
     }
@@ -418,8 +417,8 @@ class JsonRpcComplianceTest {
       var results =
           dispatcher.dispatchBatch(
               List.of(
-                  new JsonRpcRequest("2.0", "foobar", null, intId(1)),
-                  new JsonRpcRequest("2.0", "nonexistent", null, intId(2))));
+                  new JsonRpcCall("2.0", "foobar", null, intId(1)),
+                  new JsonRpcCall("2.0", "nonexistent", null, intId(2))));
       assertThat(results).hasSize(2);
       assertThat(results.get(0)).isInstanceOf(JsonRpcResult.class);
       assertThat(results.get(1)).isInstanceOf(JsonRpcError.class);
@@ -437,8 +436,8 @@ class JsonRpcComplianceTest {
       var results =
           dispatcher.dispatchBatch(
               List.of(
-                  new JsonRpcRequest("2.0", "foobar", null, intId(10)),
-                  new JsonRpcRequest("2.0", "foobar", null, intId(20))));
+                  new JsonRpcCall("2.0", "foobar", null, intId(10)),
+                  new JsonRpcCall("2.0", "foobar", null, intId(20))));
       var ids = results.stream().map(JsonRpcResponse::id).toList();
       assertThat(ids).containsExactlyInAnyOrder(intId(10), intId(20));
     }

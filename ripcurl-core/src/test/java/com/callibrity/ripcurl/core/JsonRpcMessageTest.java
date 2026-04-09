@@ -26,17 +26,17 @@ class JsonRpcMessageTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Test
-  void shouldParseRequest() {
+  void shouldParseCall() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","method":"subtract","params":{"a":1},"id":1}
         """);
     var message = JsonRpcMessage.parse(body);
-    assertThat(message).isInstanceOf(JsonRpcRequest.class);
-    var request = (JsonRpcRequest) message;
-    assertThat(request.method()).isEqualTo("subtract");
-    assertThat(request.id()).isNotNull();
+    assertThat(message).isInstanceOf(JsonRpcCall.class);
+    var call = (JsonRpcCall) message;
+    assertThat(call.method()).isEqualTo("subtract");
+    assertThat(call.id()).isNotNull();
   }
 
   @Test
@@ -54,15 +54,15 @@ class JsonRpcMessageTest {
   }
 
   @Test
-  void nullIdShouldParseAsRequestNotNotification() {
+  void nullIdShouldParseAsCallNotNotification() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","method":"test","id":null}
         """);
     var message = JsonRpcMessage.parse(body);
-    assertThat(message).isInstanceOf(JsonRpcRequest.class);
-    assertThat(((JsonRpcRequest) message).id().isNull()).isTrue();
+    assertThat(message).isInstanceOf(JsonRpcCall.class);
+    assertThat(((JsonRpcCall) message).id().isNull()).isTrue();
   }
 
   @Test
@@ -114,7 +114,7 @@ class JsonRpcMessageTest {
 
   @Test
   void patternMatchingCoversAllTypes() {
-    var request =
+    var call =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","method":"test","id":1}
@@ -135,7 +135,7 @@ class JsonRpcMessageTest {
         {"jsonrpc":"2.0","error":{"code":-1,"message":"bad"},"id":1}
         """);
 
-    assertThat(describe(JsonRpcMessage.parse(request))).isEqualTo("request");
+    assertThat(describe(JsonRpcMessage.parse(call))).isEqualTo("call");
     assertThat(describe(JsonRpcMessage.parse(notification))).isEqualTo("notification");
     assertThat(describe(JsonRpcMessage.parse(result))).isEqualTo("result");
     assertThat(describe(JsonRpcMessage.parse(error))).isEqualTo("error");
@@ -143,10 +143,16 @@ class JsonRpcMessageTest {
 
   private String describe(JsonRpcMessage message) {
     return switch (message) {
-      case JsonRpcRequest _ -> "request";
-      case JsonRpcNotification _ -> "notification";
-      case JsonRpcResult _ -> "result";
-      case JsonRpcError _ -> "error";
+      case JsonRpcRequest request ->
+          switch (request) {
+            case JsonRpcCall _ -> "call";
+            case JsonRpcNotification _ -> "notification";
+          };
+      case JsonRpcResponse response ->
+          switch (response) {
+            case JsonRpcResult _ -> "result";
+            case JsonRpcError _ -> "error";
+          };
     };
   }
 }

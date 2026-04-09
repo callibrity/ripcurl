@@ -30,8 +30,8 @@ public interface JsonRpcMethod {
   /**
    * Executes the JSON-RPC method with the given request.
    *
-   * @param request the JSON-RPC request
-   * @return the JSON-RPC response
+   * @param request the JSON-RPC request (call or notification)
+   * @return the JSON-RPC result
    */
   JsonRpcResult call(JsonRpcRequest request);
 }

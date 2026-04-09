@@ -25,19 +25,19 @@ public interface JsonRpcDispatcher {
   /**
    * Dispatches a single JSON-RPC request. Returns null for notifications.
    *
-   * @param request the JSON-RPC request
+   * @param request the JSON-RPC request (call or notification)
    * @return the response, or null for notifications
    */
   JsonRpcResponse dispatch(JsonRpcRequest request);
 
   /**
    * Dispatches a batch of JSON-RPC requests. Notifications are fired on virtual threads without
-   * waiting. Requests are dispatched concurrently via {@code invokeAll} on a
-   * virtual-thread-per-task executor. Per the JSON-RPC 2.0 spec, the server MAY process batch items
-   * concurrently in any order.
+   * waiting. Calls are dispatched concurrently via {@code invokeAll} on a virtual-thread-per-task
+   * executor. Per the JSON-RPC 2.0 spec, the server MAY process batch items concurrently in any
+   * order.
    *
    * @param requests the batch of JSON-RPC requests (must not be empty)
-   * @return the list of responses (requests only, no notifications), may be empty if all are
+   * @return the list of responses (calls only, no notifications), may be empty if all are
    *     notifications
    * @throws IllegalArgumentException if the batch is empty
    */
@@ -48,13 +48,13 @@ public interface JsonRpcDispatcher {
 
     // Fire-and-forget notifications
     requests.stream()
-        .filter(req -> req.id() == null)
+        .filter(JsonRpcNotification.class::isInstance)
         .forEach(req -> Thread.ofVirtual().start(() -> dispatch(req)));
 
-    // Dispatch requests concurrently and collect results
+    // Dispatch calls concurrently and collect results
     var callables =
         requests.stream()
-            .filter(req -> req.id() != null)
+            .filter(JsonRpcCall.class::isInstance)
             .<Callable<JsonRpcResponse>>map(req -> () -> dispatch(req))
             .toList();
     if (callables.isEmpty()) {

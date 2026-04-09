@@ -51,25 +51,29 @@ class JsonRpcBatchEdgeCaseTest {
                 () -> {
                   try {
                     dispatcher.dispatchBatch(
-                        List.of(new JsonRpcRequest("2.0", "block", null, IntNode.valueOf(1))));
+                        List.of(new JsonRpcCall("2.0", "block", null, IntNode.valueOf(1))));
                   } catch (Throwable t) {
                     thrown.set(t);
                   }
                 });
 
-    // Wait for the handler to actually be blocked, then interrupt the dispatch thread
-    await().atMost(Duration.ofSeconds(2)).until(() -> handlerStarted.getCount() == 0);
-    dispatchThread.interrupt();
-    blockingLatch.countDown(); // release the handler so everything cleans up
+    try {
+      // Wait for the handler to actually be blocked, then interrupt the dispatch thread
+      await().atMost(Duration.ofSeconds(2)).until(() -> handlerStarted.getCount() == 0);
+      dispatchThread.interrupt();
 
-    // Wait for the dispatch thread to finish and verify the exception
-    await()
-        .atMost(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              assertThat(thrown.get()).isInstanceOf(IllegalStateException.class);
-              assertThat(thrown.get().getMessage()).contains("interrupted");
-            });
+      // Wait for the dispatch thread to finish and verify the exception
+      await()
+          .atMost(Duration.ofSeconds(2))
+          .untilAsserted(
+              () -> {
+                assertThat(thrown.get()).isInstanceOf(IllegalStateException.class);
+                assertThat(thrown.get().getMessage()).contains("interrupted");
+              });
+    } finally {
+      // Always release the handler so everything cleans up
+      blockingLatch.countDown();
+    }
   }
 
   @Test
@@ -80,8 +84,8 @@ class JsonRpcBatchEdgeCaseTest {
 
     dispatcher.dispatchBatch(
         List.of(
-            new JsonRpcRequest("2.0", "track", null, null),
-            new JsonRpcRequest("2.0", "track", null, IntNode.valueOf(1))));
+            new JsonRpcNotification("2.0", "track", null),
+            new JsonRpcCall("2.0", "track", null, IntNode.valueOf(1))));
 
     await().atMost(Duration.ofSeconds(2)).untilTrue(processed);
   }

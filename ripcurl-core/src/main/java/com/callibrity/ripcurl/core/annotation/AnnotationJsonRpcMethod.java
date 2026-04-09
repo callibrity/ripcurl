@@ -17,6 +17,7 @@ package com.callibrity.ripcurl.core.annotation;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.lang.reflect.Method;
@@ -26,11 +27,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.NullNode;
 
 public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.JsonRpcMethod {
+
+  private static final Logger log = LoggerFactory.getLogger(AnnotationJsonRpcMethod.class);
 
   // ------------------------------ FIELDS ------------------------------
 
@@ -64,6 +69,11 @@ public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.
                 () ->
                     String.format(
                         "%s.%s", ClassUtils.getSimpleName(targetObject), method.getName()));
+    log.debug(
+        "Discovered @JsonRpcMethod '{}' on {}.{}",
+        this.name,
+        ClassUtils.getSimpleName(targetObject),
+        method.getName());
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -81,10 +91,8 @@ public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.
     if (result instanceof JsonRpcResult jsonRpcResult) {
       return jsonRpcResult;
     }
-    if (result == null) {
-      return request.response(NullNode.getInstance());
-    }
-    JsonNode jsonResult = mapper.valueToTree(result);
-    return request.response(jsonResult);
+    JsonNode id = request instanceof JsonRpcCall call ? call.id() : null;
+    JsonNode jsonResult = result == null ? NullNode.getInstance() : mapper.valueToTree(result);
+    return new JsonRpcResult(jsonResult, id);
   }
 }

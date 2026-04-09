@@ -18,11 +18,10 @@ package com.callibrity.ripcurl.core;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Sealed base for all JSON-RPC 2.0 message types. Use {@link #parse(JsonNode, ObjectMapper)} to
- * deserialize an incoming message into the appropriate type.
+ * Sealed base for all JSON-RPC 2.0 message types. Use {@link #parse(JsonNode)} to deserialize an
+ * incoming message into the appropriate type.
  */
-public sealed interface JsonRpcMessage
-    permits JsonRpcRequest, JsonRpcNotification, JsonRpcResponse {
+public sealed interface JsonRpcMessage permits JsonRpcRequest, JsonRpcResponse {
 
   String jsonrpc();
 
@@ -30,7 +29,6 @@ public sealed interface JsonRpcMessage
    * Parses a JSON-RPC message from a JsonNode, returning the appropriate concrete type.
    *
    * @param body the raw JSON body
-   * @param mapper the ObjectMapper for deserialization
    * @return the parsed message
    * @throws IllegalArgumentException if the message cannot be classified
    */
@@ -42,7 +40,7 @@ public sealed interface JsonRpcMessage
       if (!body.has("id")) {
         return new JsonRpcNotification(jsonrpc, method, params);
       }
-      return new JsonRpcRequest(jsonrpc, method, params, body.get("id"));
+      return new JsonRpcCall(jsonrpc, method, params, body.get("id"));
     }
     JsonNode id = body.get("id");
     if (body.has("result")) {

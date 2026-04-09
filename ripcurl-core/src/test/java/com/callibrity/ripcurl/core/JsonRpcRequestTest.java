@@ -24,33 +24,32 @@ import tools.jackson.databind.node.StringNode;
 class JsonRpcRequestTest {
 
   @Test
-  void requestFactorySetsVersion() {
+  void callFactorySetsVersion() {
     var params = JsonNodeFactory.instance.objectNode();
     var id = StringNode.valueOf("1");
-    var request = JsonRpcRequest.request("test.method", params, id);
+    var call = JsonRpcCall.of("test.method", params, id);
 
-    assertThat(request.jsonrpc()).isEqualTo(JsonRpcProtocol.VERSION);
-    assertThat(request.method()).isEqualTo("test.method");
-    assertThat(request.params()).isSameAs(params);
-    assertThat(request.id()).isSameAs(id);
+    assertThat(call.jsonrpc()).isEqualTo(JsonRpcProtocol.VERSION);
+    assertThat(call.method()).isEqualTo("test.method");
+    assertThat(call.params()).isSameAs(params);
+    assertThat(call.id()).isSameAs(id);
   }
 
   @Test
-  void notificationFactorySetsVersionAndNullId() {
+  void notificationFactorySetsVersion() {
     var params = JsonNodeFactory.instance.objectNode();
-    var request = JsonRpcRequest.notification("test.notify", params);
+    var notification = JsonRpcNotification.of("test.notify", params);
 
-    assertThat(request.jsonrpc()).isEqualTo(JsonRpcProtocol.VERSION);
-    assertThat(request.method()).isEqualTo("test.notify");
-    assertThat(request.params()).isSameAs(params);
-    assertThat(request.id()).isNull();
+    assertThat(notification.jsonrpc()).isEqualTo(JsonRpcProtocol.VERSION);
+    assertThat(notification.method()).isEqualTo("test.notify");
+    assertThat(notification.params()).isSameAs(params);
   }
 
   @Test
-  void responseShouldEchoId() {
+  void resultShouldEchoId() {
     var id = StringNode.valueOf("42");
-    var request = JsonRpcRequest.request("test", null, id);
-    var result = request.response(StringNode.valueOf("ok"));
+    var call = JsonRpcCall.of("test", null, id);
+    var result = call.result(StringNode.valueOf("ok"));
     assertThat(result.id()).isSameAs(id);
     assertThat(result.result()).isEqualTo(StringNode.valueOf("ok"));
   }
@@ -58,8 +57,8 @@ class JsonRpcRequestTest {
   @Test
   void errorShouldEchoId() {
     var id = StringNode.valueOf("42");
-    var request = JsonRpcRequest.request("test", null, id);
-    var error = request.error(-32601, "Not found");
+    var call = JsonRpcCall.of("test", null, id);
+    var error = call.error(-32601, "Not found");
     assertThat(error.id()).isSameAs(id);
     assertThat(error.error().code()).isEqualTo(-32601);
     assertThat(error.error().message()).isEqualTo("Not found");

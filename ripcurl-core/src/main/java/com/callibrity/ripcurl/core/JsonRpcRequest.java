@@ -17,26 +17,14 @@ package com.callibrity.ripcurl.core;
 
 import tools.jackson.databind.JsonNode;
 
-public record JsonRpcRequest(String jsonrpc, String method, JsonNode params, JsonNode id)
-    implements JsonRpcMessage {
+/**
+ * Sealed base for JSON-RPC 2.0 request types. A "Request object" in the spec encompasses both calls
+ * (with an id, expecting a response) and notifications (without an id, fire-and-forget).
+ */
+public sealed interface JsonRpcRequest extends JsonRpcMessage
+    permits JsonRpcCall, JsonRpcNotification {
 
-  /** Creates a JSON-RPC request with the version set automatically. */
-  public static JsonRpcRequest request(String method, JsonNode params, JsonNode id) {
-    return new JsonRpcRequest(JsonRpcProtocol.VERSION, method, params, id);
-  }
+  String method();
 
-  /** Creates a JSON-RPC notification (a request with no id). */
-  public static JsonRpcRequest notification(String method, JsonNode params) {
-    return new JsonRpcRequest(JsonRpcProtocol.VERSION, method, params, null);
-  }
-
-  /** Creates a successful JSON-RPC response for this request, echoing the id. */
-  public JsonRpcResult response(JsonNode result) {
-    return new JsonRpcResult(result, this.id);
-  }
-
-  /** Creates an error JSON-RPC response for this request, echoing the id. */
-  public JsonRpcError error(int code, String message) {
-    return new JsonRpcError(code, message, this.id);
-  }
+  JsonNode params();
 }

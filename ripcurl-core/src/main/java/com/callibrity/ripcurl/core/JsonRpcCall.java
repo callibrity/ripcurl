@@ -17,12 +17,22 @@ package com.callibrity.ripcurl.core;
 
 import tools.jackson.databind.JsonNode;
 
-/** A JSON-RPC 2.0 notification — a request with no id (fire-and-forget). */
-public record JsonRpcNotification(String jsonrpc, String method, JsonNode params)
+/** A JSON-RPC 2.0 request with an id — expects a response. */
+public record JsonRpcCall(String jsonrpc, String method, JsonNode params, JsonNode id)
     implements JsonRpcRequest {
 
-  /** Creates a notification with the version set automatically. */
-  public static JsonRpcNotification of(String method, JsonNode params) {
-    return new JsonRpcNotification(JsonRpcProtocol.VERSION, method, params);
+  /** Creates a JSON-RPC call with the version set automatically. */
+  public static JsonRpcCall of(String method, JsonNode params, JsonNode id) {
+    return new JsonRpcCall(JsonRpcProtocol.VERSION, method, params, id);
+  }
+
+  /** Creates a successful JSON-RPC response for this call, echoing the id. */
+  public JsonRpcResult result(JsonNode result) {
+    return new JsonRpcResult(result, this.id);
+  }
+
+  /** Creates an error JSON-RPC response for this call, echoing the id. */
+  public JsonRpcError error(int code, String message) {
+    return new JsonRpcError(code, message, this.id);
   }
 }

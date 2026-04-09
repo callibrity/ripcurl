@@ -17,9 +17,10 @@ package com.callibrity.ripcurl.core.def;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
-import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
@@ -71,12 +72,12 @@ class DefaultJsonRpcDispatcherTest {
   }
 
   @Test
-  void shouldReturnResultForValidRequest() {
+  void shouldReturnResultForValidCall() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var id = StringNode.valueOf("123");
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.sayHello",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -88,14 +89,14 @@ class DefaultJsonRpcDispatcherTest {
   }
 
   @Test
-  void subsequentRequestsShouldWork() {
+  void subsequentCallsShouldWork() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var id = StringNode.valueOf("123");
-    var request =
-        new JsonRpcRequest(
+    var call =
+        new JsonRpcCall(
             "2.0", "HelloService.sayHello", MAPPER.createObjectNode().put("name", "World"), id);
-    service.dispatch(request);
-    var response = service.dispatch(request);
+    service.dispatch(call);
+    var response = service.dispatch(call);
     assertThat(response).isInstanceOf(JsonRpcResult.class);
     assertThat(((JsonRpcResult) response).result().stringValue()).isEqualTo("Hello, World!");
   }
@@ -106,7 +107,7 @@ class DefaultJsonRpcDispatcherTest {
     var id = IntNode.valueOf(123);
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.sayHello",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -120,11 +121,8 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
         service.dispatch(
-            new JsonRpcRequest(
-                "2.0",
-                "HelloService.sayHello",
-                MAPPER.createObjectNode().put("name", "World"),
-                null));
+            new JsonRpcNotification(
+                "2.0", "HelloService.sayHello", MAPPER.createObjectNode().put("name", "World")));
     assertThat(response).isNull();
   }
 
@@ -133,7 +131,7 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.sayHello",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -147,7 +145,7 @@ class DefaultJsonRpcDispatcherTest {
     var id = StringNode.valueOf("v1");
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.fireAndForget",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -162,7 +160,7 @@ class DefaultJsonRpcDispatcherTest {
     var id = StringNode.valueOf("r1");
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.rawResponse",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -181,7 +179,7 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of());
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.01",
                 "HelloService.sayHello",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -195,7 +193,7 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of());
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 null,
                 MAPPER.createObjectNode().put("name", "World"),
@@ -209,7 +207,7 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "bogus",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -224,7 +222,7 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.sayHello",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -239,7 +237,7 @@ class DefaultJsonRpcDispatcherTest {
     var id = StringNode.valueOf("e1");
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.throwsException",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -254,7 +252,7 @@ class DefaultJsonRpcDispatcherTest {
   @Test
   void notificationErrorShouldReturnNull() {
     var service = new DefaultJsonRpcDispatcher(List.of());
-    var response = service.dispatch(new JsonRpcRequest("2.01", "bad", null, null));
+    var response = service.dispatch(new JsonRpcNotification("2.01", "bad", null));
     assertThat(response).isNull();
   }
 
@@ -264,7 +262,7 @@ class DefaultJsonRpcDispatcherTest {
     var params = MAPPER.createObjectNode();
     params.putObject("name"); // object instead of string → ParameterResolutionException
     var response =
-        service.dispatch(new JsonRpcRequest("2.0", "HelloService.sayHello", params, null));
+        service.dispatch(new JsonRpcNotification("2.0", "HelloService.sayHello", params));
     assertThat(response).isNull();
   }
 
@@ -273,11 +271,10 @@ class DefaultJsonRpcDispatcherTest {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcNotification(
                 "2.0",
                 "HelloService.throwsRuntimeException",
-                MAPPER.createObjectNode().put("name", "x"),
-                null));
+                MAPPER.createObjectNode().put("name", "x")));
     assertThat(response).isNull();
   }
 
@@ -285,8 +282,7 @@ class DefaultJsonRpcDispatcherTest {
   void rpcPrefixShouldReturnError() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
-        service.dispatch(
-            new JsonRpcRequest("2.0", "rpc.discover", null, StringNode.valueOf("123")));
+        service.dispatch(new JsonRpcCall("2.0", "rpc.discover", null, StringNode.valueOf("123")));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     assertThat(((JsonRpcError) response).error().code())
         .isEqualTo(JsonRpcProtocol.METHOD_NOT_FOUND);
@@ -298,7 +294,7 @@ class DefaultJsonRpcDispatcherTest {
     var id = StringNode.valueOf("u1");
     var response =
         service.dispatch(
-            new JsonRpcRequest(
+            new JsonRpcCall(
                 "2.0",
                 "HelloService.throwsRuntimeException",
                 MAPPER.createObjectNode().put("name", "World"),
@@ -317,7 +313,7 @@ class DefaultJsonRpcDispatcherTest {
     // Pass an object where sayHello expects a String "name" param, but give it an object instead
     var params = MAPPER.createObjectNode();
     params.putObject("name"); // object instead of string
-    var response = service.dispatch(new JsonRpcRequest("2.0", "HelloService.sayHello", params, id));
+    var response = service.dispatch(new JsonRpcCall("2.0", "HelloService.sayHello", params, id));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);

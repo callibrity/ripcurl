@@ -17,8 +17,10 @@ package com.callibrity.ripcurl.core.def;
 
 import static java.util.Optional.ofNullable;
 
+import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -31,57 +33,68 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.jwcarman.methodical.ParameterResolutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.JsonNodeType;
 
 public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
+
+  private static final Logger log = LoggerFactory.getLogger(DefaultJsonRpcDispatcher.class);
 
   private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
 
   public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
     this.methods =
         LazyInitializer.of(
-            () ->
-                providers.stream()
-                    .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
-                    .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m)));
+            () -> {
+              var methodMap =
+                  providers.stream()
+                      .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
+                      .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m));
+              methodMap.keySet().forEach(name -> log.info("Registered JSON-RPC method: {}", name));
+              return methodMap;
+            });
   }
 
   @Override
   public JsonRpcResponse dispatch(JsonRpcRequest request) {
-    try {
-      validate(request);
+    return switch (request) {
+      case JsonRpcCall call -> dispatchCall(call);
+      case JsonRpcNotification notification -> dispatchNotification(notification);
+    };
+  }
 
+  private JsonRpcResponse dispatchCall(JsonRpcCall call) {
+    try {
+      validate(call);
       var method =
-          ofNullable(methods.get().get(request.method()))
+          ofNullable(methods.get().get(call.method()))
               .orElseThrow(
                   () ->
                       new JsonRpcException(
                           JsonRpcProtocol.METHOD_NOT_FOUND,
-                          String.format("JSON-RPC method \"%s\" not found.", request.method())));
-
-      var response = method.call(request);
-
-      // No id field at all → notification, no response
-      if (request.id() == null) {
-        return null;
-      }
-      return response;
+                          String.format("JSON-RPC method \"%s\" not found.", call.method())));
+      return method.call(call);
     } catch (ParameterResolutionException e) {
-      if (request.id() == null) {
-        return null;
-      }
-      return new JsonRpcError(JsonRpcProtocol.INVALID_PARAMS, e.getMessage(), request.id());
+      return new JsonRpcError(JsonRpcProtocol.INVALID_PARAMS, e.getMessage(), call.id());
     } catch (JsonRpcException e) {
-      if (request.id() == null) {
-        return null;
-      }
-      return new JsonRpcError(e.getCode(), e.getMessage(), request.id());
+      return new JsonRpcError(e.getCode(), e.getMessage(), call.id());
     } catch (RuntimeException e) {
-      if (request.id() == null) {
-        return null;
-      }
-      return new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), request.id());
+      return new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), call.id());
     }
+  }
+
+  private JsonRpcResponse dispatchNotification(JsonRpcNotification notification) {
+    try {
+      validate(notification);
+      var method = methods.get().get(notification.method());
+      if (method != null) {
+        method.call(notification);
+      }
+    } catch (Exception e) {
+      log.warn("Notification '{}' failed: {}", notification.method(), e.getMessage(), e);
+    }
+    return null;
   }
 
   private void validate(JsonRpcRequest request) {
@@ -98,15 +111,21 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
       throw new JsonRpcException(
           JsonRpcProtocol.METHOD_NOT_FOUND, "Methods starting with \"rpc.\" are reserved.");
     }
-    if (request.id() != null
-        && !request.id().isNull()
-        && request.id().getNodeType() != JsonNodeType.STRING
-        && request.id().getNodeType() != JsonNodeType.NUMBER) {
+    if (request instanceof JsonRpcCall call) {
+      validateId(call);
+    }
+  }
+
+  private void validateId(JsonRpcCall call) {
+    if (call.id() != null
+        && !call.id().isNull()
+        && call.id().getNodeType() != JsonNodeType.STRING
+        && call.id().getNodeType() != JsonNodeType.NUMBER) {
       throw new JsonRpcException(
           JsonRpcProtocol.INVALID_REQUEST,
           String.format(
               "Invalid id type (%s). Must be a %s or %s.",
-              request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
+              call.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
     }
   }
 }
