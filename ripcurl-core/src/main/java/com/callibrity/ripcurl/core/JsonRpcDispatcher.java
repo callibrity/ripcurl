@@ -15,6 +15,7 @@
  */
 package com.callibrity.ripcurl.core;
 
+import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -65,9 +66,13 @@ public interface JsonRpcDispatcher {
                   return f.get();
                 } catch (InterruptedException e) {
                   Thread.currentThread().interrupt();
-                  throw new RuntimeException(e);
+                  throw new IllegalStateException("Batch dispatch interrupted", e);
                 } catch (ExecutionException e) {
-                  throw new RuntimeException(e.getCause());
+                  if (e.getCause() instanceof RuntimeException re) {
+                    throw re;
+                  }
+                  throw new JsonRpcException(
+                      JsonRpcProtocol.INTERNAL_ERROR, e.getCause().getMessage());
                 }
               })
           .toList();

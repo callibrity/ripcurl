@@ -80,27 +80,27 @@ class JsonRpcComplianceTest {
 
     @Test
     void parseErrorCode() {
-      assertThat(JsonRpcProtocol.PARSE_ERROR).isEqualTo(-32700);
+      assertThat(-32700).isEqualTo(JsonRpcProtocol.PARSE_ERROR);
     }
 
     @Test
     void invalidRequestCode() {
-      assertThat(JsonRpcProtocol.INVALID_REQUEST).isEqualTo(-32600);
+      assertThat(-32600).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
     }
 
     @Test
     void methodNotFoundCode() {
-      assertThat(JsonRpcProtocol.METHOD_NOT_FOUND).isEqualTo(-32601);
+      assertThat(-32601).isEqualTo(JsonRpcProtocol.METHOD_NOT_FOUND);
     }
 
     @Test
     void invalidParamsCode() {
-      assertThat(JsonRpcProtocol.INVALID_PARAMS).isEqualTo(-32602);
+      assertThat(-32602).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
     }
 
     @Test
     void internalErrorCode() {
-      assertThat(JsonRpcProtocol.INTERNAL_ERROR).isEqualTo(-32603);
+      assertThat(-32603).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR);
     }
   }
 
@@ -388,8 +388,9 @@ class JsonRpcComplianceTest {
                       "2.0", "update", MAPPER.createArrayNode().add(1).add(2).add(3), null),
                   new JsonRpcRequest("2.0", "foobar", null, intId(2))));
       // Notification excluded, two results returned
-      assertThat(results).hasSize(2);
-      assertThat(results).allSatisfy(r -> assertThat(r).isInstanceOf(JsonRpcResult.class));
+      assertThat(results)
+          .hasSize(2)
+          .allSatisfy(r -> assertThat(r).isInstanceOf(JsonRpcResult.class));
     }
 
     @Test
@@ -426,7 +427,8 @@ class JsonRpcComplianceTest {
 
     @Test
     void emptyBatchThrows() {
-      assertThatThrownBy(() -> dispatcher.dispatchBatch(List.of()))
+      var emptyList = List.<JsonRpcRequest>of();
+      assertThatThrownBy(() -> dispatcher.dispatchBatch(emptyList))
           .isInstanceOf(IllegalArgumentException.class);
     }
 
