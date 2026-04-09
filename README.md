@@ -110,13 +110,7 @@ For notifications, the dispatcher invokes the method but always returns `null` â
 
 ```java
 return switch (request) {
-    case JsonRpcCall call -> {
-        var response = dispatcher.dispatch(call);
-        yield switch (response) {
-            case JsonRpcResult result -> ResponseEntity.ok(result);
-            case JsonRpcError error -> ResponseEntity.ok(error);
-        };
-    }
+    case JsonRpcCall call -> ResponseEntity.ok(dispatcher.dispatch(call));
     case JsonRpcNotification notification -> {
         dispatcher.dispatch(notification);
         yield ResponseEntity.accepted().build();
