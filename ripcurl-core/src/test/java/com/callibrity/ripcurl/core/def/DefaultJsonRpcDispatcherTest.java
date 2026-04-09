@@ -18,6 +18,7 @@ package com.callibrity.ripcurl.core.def;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
@@ -60,7 +61,7 @@ class DefaultJsonRpcDispatcherTest {
     @JsonRpcMethod
     public String throwsException(String name) {
       throw new JsonRpcException(
-          JsonRpcException.INTERNAL_ERROR, "caused", new RuntimeException("root"));
+          JsonRpcProtocol.INTERNAL_ERROR, "caused", new RuntimeException("root"));
     }
 
     @JsonRpcMethod
@@ -186,8 +187,7 @@ class DefaultJsonRpcDispatcherTest {
                 MAPPER.createObjectNode().put("name", "World"),
                 StringNode.valueOf("123")));
     assertThat(response).isInstanceOf(JsonRpcError.class);
-    assertThat(((JsonRpcError) response).error().code())
-        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+    assertThat(((JsonRpcError) response).error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
   }
 
   @Test
@@ -201,8 +201,7 @@ class DefaultJsonRpcDispatcherTest {
                 MAPPER.createObjectNode().put("name", "World"),
                 StringNode.valueOf("123")));
     assertThat(response).isInstanceOf(JsonRpcError.class);
-    assertThat(((JsonRpcError) response).error().code())
-        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+    assertThat(((JsonRpcError) response).error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
   }
 
   @Test
@@ -217,7 +216,7 @@ class DefaultJsonRpcDispatcherTest {
                 StringNode.valueOf("123")));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     assertThat(((JsonRpcError) response).error().code())
-        .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
+        .isEqualTo(JsonRpcProtocol.METHOD_NOT_FOUND);
   }
 
   @Test
@@ -231,8 +230,7 @@ class DefaultJsonRpcDispatcherTest {
                 MAPPER.createObjectNode().put("name", "World"),
                 MAPPER.createObjectNode()));
     assertThat(response).isInstanceOf(JsonRpcError.class);
-    assertThat(((JsonRpcError) response).error().code())
-        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+    assertThat(((JsonRpcError) response).error().code()).isEqualTo(JsonRpcProtocol.INVALID_REQUEST);
   }
 
   @Test
@@ -248,7 +246,7 @@ class DefaultJsonRpcDispatcherTest {
                 id));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
-    assertThat(error.error().code()).isEqualTo(JsonRpcException.INTERNAL_ERROR);
+    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR);
     assertThat(error.error().message()).isEqualTo("caused");
     assertThat(error.id()).isEqualTo(id);
   }
@@ -268,7 +266,7 @@ class DefaultJsonRpcDispatcherTest {
             new JsonRpcRequest("2.0", "rpc.discover", null, StringNode.valueOf("123")));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     assertThat(((JsonRpcError) response).error().code())
-        .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
+        .isEqualTo(JsonRpcProtocol.METHOD_NOT_FOUND);
   }
 
   @Test
@@ -284,7 +282,7 @@ class DefaultJsonRpcDispatcherTest {
                 id));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
-    assertThat(error.error().code()).isEqualTo(JsonRpcException.INTERNAL_ERROR);
+    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR);
     assertThat(error.error().message()).isEqualTo("something broke");
     assertThat(error.id()).isEqualTo(id);
   }
@@ -299,7 +297,7 @@ class DefaultJsonRpcDispatcherTest {
     var response = service.dispatch(new JsonRpcRequest("2.0", "HelloService.sayHello", params, id));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
-    assertThat(error.error().code()).isEqualTo(JsonRpcException.INVALID_PARAMS);
+    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
     assertThat(error.id()).isEqualTo(id);
   }
 }

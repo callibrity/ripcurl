@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.jwcarman.methodical.MethodInvocationException;
+import org.jwcarman.methodical.ParameterResolutionException;
 import tools.jackson.databind.node.JsonNodeType;
 
 public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
@@ -56,7 +56,7 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
               .orElseThrow(
                   () ->
                       new JsonRpcException(
-                          JsonRpcException.METHOD_NOT_FOUND,
+                          JsonRpcProtocol.METHOD_NOT_FOUND,
                           String.format("JSON-RPC method \"%s\" not found.", request.method())));
 
       var response = method.call(request);
@@ -66,11 +66,11 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
         return null;
       }
       return response;
-    } catch (MethodInvocationException e) {
+    } catch (ParameterResolutionException e) {
       if (request.id() == null) {
         return null;
       }
-      return new JsonRpcError(JsonRpcException.INVALID_PARAMS, e.getMessage(), request.id());
+      return new JsonRpcError(JsonRpcProtocol.INVALID_PARAMS, e.getMessage(), request.id());
     } catch (JsonRpcException e) {
       if (request.id() == null) {
         return null;
@@ -80,30 +80,30 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
       if (request.id() == null) {
         return null;
       }
-      return new JsonRpcError(JsonRpcException.INTERNAL_ERROR, e.getMessage(), request.id());
+      return new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), request.id());
     }
   }
 
   private void validate(JsonRpcRequest request) {
     if (!JsonRpcProtocol.VERSION.equals(request.jsonrpc())) {
       throw new JsonRpcException(
-          JsonRpcException.INVALID_REQUEST,
+          JsonRpcProtocol.INVALID_REQUEST,
           String.format("jsonrpc value must be \"%s\".", JsonRpcProtocol.VERSION));
     }
     if (StringUtils.isBlank(request.method())) {
       throw new JsonRpcException(
-          JsonRpcException.INVALID_REQUEST, "JSON-RPC method name is required.");
+          JsonRpcProtocol.INVALID_REQUEST, "JSON-RPC method name is required.");
     }
     if (request.method().startsWith("rpc.")) {
       throw new JsonRpcException(
-          JsonRpcException.METHOD_NOT_FOUND, "Methods starting with \"rpc.\" are reserved.");
+          JsonRpcProtocol.METHOD_NOT_FOUND, "Methods starting with \"rpc.\" are reserved.");
     }
     if (request.id() != null
         && !request.id().isNull()
         && request.id().getNodeType() != JsonNodeType.STRING
         && request.id().getNodeType() != JsonNodeType.NUMBER) {
       throw new JsonRpcException(
-          JsonRpcException.INVALID_REQUEST,
+          JsonRpcProtocol.INVALID_REQUEST,
           String.format(
               "Invalid id type (%s). Must be a %s or %s.",
               request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
