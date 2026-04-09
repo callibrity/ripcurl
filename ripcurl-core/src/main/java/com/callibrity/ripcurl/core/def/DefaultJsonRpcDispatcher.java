@@ -80,6 +80,7 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
     } catch (JsonRpcException e) {
       return new JsonRpcError(e.getCode(), e.getMessage(), call.id());
     } catch (RuntimeException e) {
+      log.error("Unexpected error dispatching JSON-RPC call '{}'", call.method(), e);
       return new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), call.id());
     }
   }
