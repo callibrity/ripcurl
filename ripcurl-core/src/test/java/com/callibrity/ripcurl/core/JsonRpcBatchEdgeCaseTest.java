@@ -37,7 +37,7 @@ class JsonRpcBatchEdgeCaseTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Test
-  void batchShouldThrowWhenCallingThreadIsInterrupted() throws Exception {
+  void batchShouldThrowWhenCallingThreadIsInterrupted() {
     var handlerStarted = new CountDownLatch(1);
     var blockingLatch = new CountDownLatch(1);
     var service = new BlockingService(handlerStarted, blockingLatch);
