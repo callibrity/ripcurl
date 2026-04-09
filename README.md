@@ -55,6 +55,32 @@ public class MathService {
 
 RipCurl discovers all `@JsonRpcService` beans and registers their `@JsonRpcMethod` methods with the dispatcher. Parameters are resolved by name from the JSON-RPC `params` object (or by position from a JSON array).
 
+## Message Types
+
+RipCurl models the JSON-RPC 2.0 message types as a sealed hierarchy:
+
+```
+JsonRpcMessage (sealed)
+├── JsonRpcRequest (sealed)
+│   ├── JsonRpcCall (method + params + id) — expects a response
+│   └── JsonRpcNotification (method + params) — fire-and-forget
+└── JsonRpcResponse (sealed)
+    ├── JsonRpcResult (result + id) — success
+    └── JsonRpcError (error + id) — failure
+```
+
+Parse incoming JSON into the appropriate type:
+
+```java
+JsonRpcMessage message = JsonRpcMessage.parse(body);
+return switch (message) {
+    case JsonRpcCall call -> dispatcher.dispatch(call);
+    case JsonRpcNotification notification -> handleNotification(notification);
+    case JsonRpcResult result -> handleClientResult(result);
+    case JsonRpcError error -> handleClientError(error);
+};
+```
+
 ## Writing a Controller
 
 RipCurl doesn't include a controller — you write your own. This gives you full control over HTTP concerns (headers, auth, content types):
@@ -67,7 +93,8 @@ public class JsonRpcController {
     private final JsonRpcDispatcher dispatcher;
 
     @PostMapping(consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> handle(@RequestBody JsonRpcRequest request) {
+    public ResponseEntity<?> handle(@RequestBody JsonNode body) {
+        JsonRpcRequest request = /* parse from body */;
         JsonRpcResponse response = dispatcher.dispatch(request);
         if (response == null) {
             return ResponseEntity.noContent().build(); // notification
@@ -77,13 +104,23 @@ public class JsonRpcController {
 }
 ```
 
-The dispatcher never throws — it returns either a `JsonRpcResult` (success) or `JsonRpcError` (failure). Pattern match for more control:
+The dispatcher accepts both `JsonRpcCall` and `JsonRpcNotification` (via `JsonRpcRequest`). It never throws — it returns either a `JsonRpcResult` (success), `JsonRpcError` (failure), or `null` (notification).
+
+For notifications, the dispatcher invokes the method but always returns `null` — per the spec, the server must not reply. Pattern match on the request type if you need different HTTP handling:
 
 ```java
-return switch (dispatcher.dispatch(request)) {
-    case null -> ResponseEntity.noContent().build();
-    case JsonRpcResult result -> ResponseEntity.ok(result);
-    case JsonRpcError error -> ResponseEntity.ok(error);
+return switch (request) {
+    case JsonRpcCall call -> {
+        var response = dispatcher.dispatch(call);
+        yield switch (response) {
+            case JsonRpcResult result -> ResponseEntity.ok(result);
+            case JsonRpcError error -> ResponseEntity.ok(error);
+        };
+    }
+    case JsonRpcNotification notification -> {
+        dispatcher.dispatch(notification);
+        yield ResponseEntity.accepted().build();
+    }
 };
 ```
 
@@ -92,26 +129,15 @@ return switch (dispatcher.dispatch(request)) {
 JSON-RPC 2.0 supports batch requests (an array of requests). Use `dispatchBatch()`:
 
 ```java
-@PostMapping(consumes = "application/json", produces = "application/json")
-public ResponseEntity<?> handle(@RequestBody JsonNode body) {
-    if (body.isArray()) {
-        List<JsonRpcRequest> requests = /* deserialize array */;
-        List<JsonRpcResponse> responses = dispatcher.dispatchBatch(requests);
-        if (responses.isEmpty()) {
-            return ResponseEntity.noContent().build(); // all notifications
-        }
-        return ResponseEntity.ok(responses);
-    }
-    // single request
-    JsonRpcRequest request = /* deserialize */;
-    JsonRpcResponse response = dispatcher.dispatch(request);
-    return response == null
-        ? ResponseEntity.noContent().build()
-        : ResponseEntity.ok(response);
+List<JsonRpcRequest> requests = /* parse array */;
+List<JsonRpcResponse> responses = dispatcher.dispatchBatch(requests);
+if (responses.isEmpty()) {
+    return ResponseEntity.noContent().build(); // all notifications
 }
+return ResponseEntity.ok(responses);
 ```
 
-`dispatchBatch()` dispatches requests concurrently on virtual threads via `invokeAll`. Notifications are fire-and-forget — they don't block the batch response.
+`dispatchBatch()` dispatches calls concurrently on virtual threads via `invokeAll`. Notifications are fire-and-forget — they don't block the batch response.
 
 ## Response Types
 
@@ -128,19 +154,19 @@ Handlers can return `JsonRpcResult` directly to attach metadata (e.g., SSE emitt
 
 ```java
 @JsonRpcMethod("tools/call")
-public JsonRpcResult streamingCall(JsonRpcRequest request) {
+public JsonRpcResult streamingCall(JsonRpcCall call) {
     SseEmitter emitter = setupStreaming();
-    return request.response(null).withMetadata("emitter", emitter);
+    return call.result(null).withMetadata("emitter", emitter);
 }
 ```
 
 ### Creating Correlated Responses
 
-`JsonRpcRequest` has factory methods that echo the request `id`:
+`JsonRpcCall` has factory methods that echo the request `id`:
 
 ```java
-request.response(resultNode);          // JsonRpcResult with matching id
-request.error(-32601, "Not found");    // JsonRpcError with matching id
+call.result(resultNode);          // JsonRpcResult with matching id
+call.error(-32601, "Not found");  // JsonRpcError with matching id
 ```
 
 ## Error Handling
@@ -150,7 +176,7 @@ The dispatcher catches all exceptions and returns appropriate `JsonRpcError` res
 | Error Code | Constant | When |
 |---|---|---|
 | -32700 | `JsonRpcProtocol.PARSE_ERROR` | Malformed JSON (controller concern) |
-| -32600 | `JsonRpcProtocol.INVALID_REQUEST` | Bad jsonrpc version, missing method, invalid id type |
+| -32600 | `JsonRpcProtocol.INVALID_REQUEST` | Bad jsonrpc version, missing method, invalid id/params type |
 | -32601 | `JsonRpcProtocol.METHOD_NOT_FOUND` | Unknown method, `rpc.*` prefix |
 | -32602 | `JsonRpcProtocol.INVALID_PARAMS` | Parameter deserialization failure |
 | -32603 | `JsonRpcProtocol.INTERNAL_ERROR` | Unhandled runtime exception |

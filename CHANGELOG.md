@@ -1,5 +1,44 @@
 # Changelog
 
+## 2.0.0
+
+### Breaking Changes
+- `JsonRpcRequest` is now a sealed interface (was a record) — the base type for all incoming JSON-RPC messages
+- Requests with an `id` are now `JsonRpcCall` (was `JsonRpcRequest`)
+- `JsonRpcNotification` is a proper type under `JsonRpcRequest` (was under `JsonRpcMessage`)
+- `JsonRpcRequest.response()` renamed to `JsonRpcCall.result()`
+- `JsonRpcRequest.error()` moved to `JsonRpcCall.error()`
+- `JsonRpcRequest.request()` factory removed — use `new JsonRpcCall(...)` or `JsonRpcCall.of()`
+- `JsonRpcRequest.notification()` factory removed — use `new JsonRpcNotification(...)` or `JsonRpcNotification.of()`
+- `JsonRpcCall` requires non-null `method` and `id` (enforced via compact constructor)
+- `JsonRpcNotification` requires non-null `method` (enforced via compact constructor)
+
+### New Features
+- **Sealed request hierarchy** — dispatcher accepts `JsonRpcRequest` and pattern-matches on `JsonRpcCall` vs `JsonRpcNotification`
+- **`params` type validation** — rejects non-Object/Array params per JSON-RPC 2.0 spec
+- **SLF4J logging** — method registration at INFO, annotation discovery at DEBUG, notification failures at WARN
+
+### Type Hierarchy
+```
+JsonRpcMessage (sealed)
+├── JsonRpcRequest (sealed)
+│   ├── JsonRpcCall (method + params + id)
+│   └── JsonRpcNotification (method + params, no id)
+└── JsonRpcResponse (sealed)
+    ├── JsonRpcResult
+    └── JsonRpcError
+```
+
+### Migration Guide
+| 1.x | 2.0 |
+|---|---|
+| `new JsonRpcRequest("2.0", "method", params, id)` | `new JsonRpcCall("2.0", "method", params, id)` |
+| `new JsonRpcRequest("2.0", "method", params, null)` | `new JsonRpcNotification("2.0", "method", params)` |
+| `JsonRpcRequest.request("method", params, id)` | `JsonRpcCall.of("method", params, id)` |
+| `JsonRpcRequest.notification("method", params)` | `JsonRpcNotification.of("method", params)` |
+| `request.response(result)` | `call.result(result)` |
+| `dispatch(JsonRpcRequest)` | `dispatch(JsonRpcRequest)` (unchanged — accepts both types) |
+
 ## 1.1.0
 
 ### New Features
