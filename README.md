@@ -6,17 +6,14 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=coverage)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=callibrity_ripcurl&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=callibrity_ripcurl)
 
+A [JSON-RPC 2.0](https://www.jsonrpc.org/specification) compliant dispatching framework for Spring Boot 4. RipCurl handles method routing, parameter resolution, and error handling — you provide the HTTP layer.
 
-A [JSON-RPC 2.0](https://www.jsonrpc.org/specification) compliant framework built for Spring Boot.
+## Quick Start
 
-## Getting Started
-
-RipCurl includes a Spring Boot starter, making it easy to get started by simply adding a dependency:
+Add the starter:
 
 ```xml
 <dependency>
@@ -26,53 +23,150 @@ RipCurl includes a Spring Boot starter, making it easy to get started by simply 
 </dependency>
 ```
 
-By default RipCurl will listen for JSON-RPC requests on the `/jsonrpc` endpoint. You can change this by setting the `ripcurl.endpoint` property in your `application.properties` or `application.yml` file:
+And the Jackson 3 resolver (included with Spring Boot 4):
 
-```properties
-ripcurl.endpoint=/your-custom-endpoint
+```xml
+<dependency>
+    <groupId>org.jwcarman.methodical</groupId>
+    <artifactId>methodical-jackson3</artifactId>
+    <version>${methodical.version}</version>
+</dependency>
 ```
 
-## Using RipCurl
+## Defining Methods
 
-To use RipCurl, you need to annotate a bean method with `@JsonRpc` and the bean itself with `@JsonRpcService`:
+Annotate a bean with `@JsonRpcService` and its methods with `@JsonRpcMethod`:
 
 ```java
-import com.callibrity.ripcurl.core.annotation.JsonRpc;
-import org.springframework.stereotype.Component;
-
-@Component
 @JsonRpcService
-public class HelloRpc {
+public class MathService {
 
-    @JsonRpc("hello")
-    public String sayHello(String name) {
-        return String.format("Hello, %s!", name);
+    @JsonRpcMethod("subtract")
+    public int subtract(int minuend, int subtrahend) {
+        return minuend - subtrahend;
+    }
+
+    @JsonRpcMethod("ping")
+    public String ping() {
+        return "pong";
     }
 }
 ```
 
-RipCurl will scan the Spring `ApplicationContext` for all beans annotated with the `@JsonRpcService` annotation and 
-register each of their methods annotated with `@JsonRpc` with the `JsonRpcDispatcher`.
+RipCurl discovers all `@JsonRpcService` beans and registers their `@JsonRpcMethod` methods with the dispatcher. Parameters are resolved by name from the JSON-RPC `params` object (or by position from a JSON array).
 
-You can then send a JSON-RPC request to the `/jsonrpc` endpoint with the following payload:
+## Writing a Controller
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "12345",
-  "method": "hello",
-  "params": {
-    "name": "RipCurl"
-  }
+RipCurl doesn't include a controller — you write your own. This gives you full control over HTTP concerns (headers, auth, content types):
+
+```java
+@RestController
+@RequestMapping("/rpc")
+public class JsonRpcController {
+
+    private final JsonRpcDispatcher dispatcher;
+
+    @PostMapping(consumes = "application/json", produces = "application/json")
+    public ResponseEntity<?> handle(@RequestBody JsonRpcRequest request) {
+        JsonRpcResponse response = dispatcher.dispatch(request);
+        if (response == null) {
+            return ResponseEntity.noContent().build(); // notification
+        }
+        return ResponseEntity.ok(response);
+    }
 }
 ```
 
-The response will be:
+The dispatcher never throws — it returns either a `JsonRpcResult` (success) or `JsonRpcError` (failure). Pattern match for more control:
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "12345",
-  "result": "Hello, RipCurl!"
+```java
+return switch (dispatcher.dispatch(request)) {
+    case null -> ResponseEntity.noContent().build();
+    case JsonRpcResult result -> ResponseEntity.ok(result);
+    case JsonRpcError error -> ResponseEntity.ok(error);
+};
+```
+
+## Batch Requests
+
+JSON-RPC 2.0 supports batch requests (an array of requests). Use `dispatchBatch()`:
+
+```java
+@PostMapping(consumes = "application/json", produces = "application/json")
+public ResponseEntity<?> handle(@RequestBody JsonNode body) {
+    if (body.isArray()) {
+        List<JsonRpcRequest> requests = /* deserialize array */;
+        List<JsonRpcResponse> responses = dispatcher.dispatchBatch(requests);
+        if (responses.isEmpty()) {
+            return ResponseEntity.noContent().build(); // all notifications
+        }
+        return ResponseEntity.ok(responses);
+    }
+    // single request
+    JsonRpcRequest request = /* deserialize */;
+    JsonRpcResponse response = dispatcher.dispatch(request);
+    return response == null
+        ? ResponseEntity.noContent().build()
+        : ResponseEntity.ok(response);
 }
 ```
+
+`dispatchBatch()` dispatches requests concurrently on virtual threads via `invokeAll`. Notifications are fire-and-forget — they don't block the batch response.
+
+## Response Types
+
+`JsonRpcResponse` is a sealed interface:
+
+- **`JsonRpcResult`** — success. Has `result` (JsonNode), `id`, and `@JsonIgnore` metadata for transport hints.
+- **`JsonRpcError`** — failure. Has `error` (code + message + optional data) and `id`.
+
+Result and error are mutually exclusive per the JSON-RPC 2.0 spec — enforced by the type system.
+
+### Returning a Custom Response
+
+Handlers can return `JsonRpcResult` directly to attach metadata (e.g., SSE emitters for streaming):
+
+```java
+@JsonRpcMethod("tools/call")
+public JsonRpcResult streamingCall(JsonRpcRequest request) {
+    SseEmitter emitter = setupStreaming();
+    return request.response(null).withMetadata("emitter", emitter);
+}
+```
+
+### Creating Correlated Responses
+
+`JsonRpcRequest` has factory methods that echo the request `id`:
+
+```java
+request.response(resultNode);          // JsonRpcResult with matching id
+request.error(-32601, "Not found");    // JsonRpcError with matching id
+```
+
+## Error Handling
+
+The dispatcher catches all exceptions and returns appropriate `JsonRpcError` responses:
+
+| Error Code | Constant | When |
+|---|---|---|
+| -32700 | `JsonRpcProtocol.PARSE_ERROR` | Malformed JSON (controller concern) |
+| -32600 | `JsonRpcProtocol.INVALID_REQUEST` | Bad jsonrpc version, missing method, invalid id type |
+| -32601 | `JsonRpcProtocol.METHOD_NOT_FOUND` | Unknown method, `rpc.*` prefix |
+| -32602 | `JsonRpcProtocol.INVALID_PARAMS` | Parameter deserialization failure |
+| -32603 | `JsonRpcProtocol.INTERNAL_ERROR` | Unhandled runtime exception |
+
+Handlers can throw `JsonRpcException` with a specific code:
+
+```java
+throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Name is required");
+```
+
+## Method Invocation
+
+RipCurl uses [Methodical](https://github.com/jwcarman/methodical) for pluggable reflection-based parameter resolution. Custom `ParameterResolver<A>` beans are automatically picked up — register them as Spring beans with `@Order` to control priority.
+
+## Requirements
+
+- Java 25+
+- Spring Boot 4.x
+- [Methodical](https://github.com/jwcarman/methodical) 0.2.0+ with a JSON resolver module
