@@ -54,6 +54,18 @@ class JsonRpcMessageTest {
   }
 
   @Test
+  void nullIdShouldParseAsRequestNotNotification() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","method":"test","id":null}
+        """);
+    var message = JsonRpcMessage.parse(body);
+    assertThat(message).isInstanceOf(JsonRpcRequest.class);
+    assertThat(((JsonRpcRequest) message).id().isNull()).isTrue();
+  }
+
+  @Test
   void shouldParseResult() {
     var body =
         MAPPER.readTree(

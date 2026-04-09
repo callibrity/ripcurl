@@ -39,11 +39,10 @@ public sealed interface JsonRpcMessage
       String jsonrpc = body.path("jsonrpc").asString(null);
       String method = body.path("method").asString(null);
       JsonNode params = body.get("params");
-      JsonNode id = body.get("id");
-      if (id == null) {
+      if (!body.has("id")) {
         return new JsonRpcNotification(jsonrpc, method, params);
       }
-      return new JsonRpcRequest(jsonrpc, method, params, id);
+      return new JsonRpcRequest(jsonrpc, method, params, body.get("id"));
     }
     JsonNode id = body.get("id");
     if (body.has("result")) {
