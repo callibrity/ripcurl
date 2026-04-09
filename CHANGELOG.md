@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.0
+
+### Breaking Changes
+- `@JsonRpc` annotation renamed to `@JsonRpcMethod`
+- `JsonRpcResponse` is now a sealed interface with `JsonRpcResult` and `JsonRpcError` subtypes
+- `JsonRpcMethod.call()` returns `JsonRpcResult` (not `JsonRpcResponse`)
+- Dispatcher catches `JsonRpcException` and returns `JsonRpcError` — never throws
+- Method invocation delegated to Methodical library — `JsonMethodInvoker`, `JsonParamResolver`, `JsonRpcParamResolver` deleted
+- Custom parameter resolvers are now Methodical `ParameterResolver<A>` beans
+
+### New Features
+- `JsonRpcResult` — success response with `@JsonIgnore`d metadata for transport hints
+- `JsonRpcError` — error response with `JsonRpcErrorDetail` (code, message, optional data)
+- `JsonRpcRequest.response(result)` — creates correlated `JsonRpcResult`
+- `JsonRpcRequest.error(code, message)` — creates correlated `JsonRpcError`
+- `"id": null` (NullNode) treated as request with null id, not notification
+- Methods starting with `rpc.` rejected per JSON-RPC 2.0 spec
+- Depends on Methodical 0.1.0 for pluggable reflection-based method invocation
+
 ## 0.7.0
 
 ### Breaking Changes
