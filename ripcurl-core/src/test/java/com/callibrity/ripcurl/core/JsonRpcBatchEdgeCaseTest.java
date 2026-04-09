@@ -38,8 +38,9 @@ class JsonRpcBatchEdgeCaseTest {
 
   @Test
   void batchShouldThrowWhenCallingThreadIsInterrupted() throws Exception {
+    var handlerStarted = new CountDownLatch(1);
     var blockingLatch = new CountDownLatch(1);
-    var service = new BlockingService(blockingLatch);
+    var service = new BlockingService(handlerStarted, blockingLatch);
     var dispatcher = createDispatcher(service);
     var thrown = new AtomicReference<Throwable>();
 
@@ -56,13 +57,12 @@ class JsonRpcBatchEdgeCaseTest {
                   }
                 });
 
-    // Wait for the handler to be blocked, then interrupt the dispatch thread
-    await().atMost(Duration.ofSeconds(2)).until(() -> blockingLatch.getCount() == 1);
+    // Wait for the handler to actually be blocked, then interrupt the dispatch thread
+    await().atMost(Duration.ofSeconds(2)).until(() -> handlerStarted.getCount() == 0);
     dispatchThread.interrupt();
     blockingLatch.countDown(); // release the handler so everything cleans up
 
     // Wait for the dispatch thread to finish and verify the exception
-    dispatchThread.join(5000);
     await()
         .atMost(Duration.ofSeconds(2))
         .untilAsserted(
@@ -95,15 +95,18 @@ class JsonRpcBatchEdgeCaseTest {
   }
 
   public static class BlockingService {
-    private final CountDownLatch latch;
+    private final CountDownLatch handlerStarted;
+    private final CountDownLatch blockingLatch;
 
-    public BlockingService(CountDownLatch latch) {
-      this.latch = latch;
+    public BlockingService(CountDownLatch handlerStarted, CountDownLatch blockingLatch) {
+      this.handlerStarted = handlerStarted;
+      this.blockingLatch = blockingLatch;
     }
 
     @JsonRpcMethod("block")
     public String block() throws InterruptedException {
-      latch.await();
+      handlerStarted.countDown();
+      blockingLatch.await();
       return "done";
     }
   }

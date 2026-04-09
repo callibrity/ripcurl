@@ -259,6 +259,29 @@ class DefaultJsonRpcDispatcherTest {
   }
 
   @Test
+  void notificationWithInvalidParamsShouldReturnNull() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var params = MAPPER.createObjectNode();
+    params.putObject("name"); // object instead of string → ParameterResolutionException
+    var response =
+        service.dispatch(new JsonRpcRequest("2.0", "HelloService.sayHello", params, null));
+    assertThat(response).isNull();
+  }
+
+  @Test
+  void notificationWithRuntimeExceptionShouldReturnNull() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.throwsRuntimeException",
+                MAPPER.createObjectNode().put("name", "x"),
+                null));
+    assertThat(response).isNull();
+  }
+
+  @Test
   void rpcPrefixShouldReturnError() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var response =
