@@ -15,10 +15,10 @@
  */
 package com.callibrity.ripcurl.core;
 
-import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public interface JsonRpcDispatcher {
 
@@ -32,8 +32,9 @@ public interface JsonRpcDispatcher {
 
   /**
    * Dispatches a batch of JSON-RPC requests. Notifications are fired on virtual threads without
-   * waiting. Requests are dispatched concurrently on virtual threads and joined before returning.
-   * Per the JSON-RPC 2.0 spec, the server MAY process batch items concurrently in any order.
+   * waiting. Requests are dispatched concurrently via {@code invokeAll} on a
+   * virtual-thread-per-task executor. Per the JSON-RPC 2.0 spec, the server MAY process batch items
+   * concurrently in any order.
    *
    * @param requests the batch of JSON-RPC requests (must not be empty)
    * @return the list of responses (requests only, no notifications), may be empty if all are
@@ -51,31 +52,20 @@ public interface JsonRpcDispatcher {
         .forEach(req -> Thread.ofVirtual().start(() -> dispatch(req)));
 
     // Dispatch requests concurrently and collect results
-    var requestsWithId = requests.stream().filter(req -> req.id() != null).toList();
-    if (requestsWithId.isEmpty()) {
+    var callables =
+        requests.stream()
+            .filter(req -> req.id() != null)
+            .<Callable<JsonRpcResponse>>map(req -> () -> dispatch(req))
+            .toList();
+    if (callables.isEmpty()) {
       return List.of();
     }
 
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      var futures =
-          requestsWithId.stream().map(req -> executor.submit(() -> dispatch(req))).toList();
-      return futures.stream()
-          .map(
-              f -> {
-                try {
-                  return f.get();
-                } catch (InterruptedException e) {
-                  Thread.currentThread().interrupt();
-                  throw new IllegalStateException("Batch dispatch interrupted", e);
-                } catch (ExecutionException e) {
-                  if (e.getCause() instanceof RuntimeException re) {
-                    throw re;
-                  }
-                  throw new JsonRpcException(
-                      JsonRpcProtocol.INTERNAL_ERROR, e.getCause().getMessage());
-                }
-              })
-          .toList();
+      return executor.invokeAll(callables).stream().map(Future::resultNow).toList();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return List.of();
     }
   }
 }
