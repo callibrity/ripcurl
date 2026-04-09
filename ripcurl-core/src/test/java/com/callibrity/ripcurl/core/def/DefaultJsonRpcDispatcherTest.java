@@ -16,10 +16,10 @@
 package com.callibrity.ripcurl.core.def;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
@@ -30,6 +30,7 @@ import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
+import tools.jackson.databind.node.NullNode;
 import tools.jackson.databind.node.StringNode;
 
 class DefaultJsonRpcDispatcherTest {
@@ -51,126 +52,86 @@ class DefaultJsonRpcDispatcherTest {
     }
 
     @JsonRpcMethod
-    public JsonRpcResponse rawResponse(String name) {
-      return new JsonRpcResponse(StringNode.valueOf("raw:" + name), StringNode.valueOf("custom-id"))
+    public JsonRpcResult rawResponse(String name) {
+      return new JsonRpcResult(StringNode.valueOf("raw:" + name), StringNode.valueOf("custom-id"))
           .withMetadata("test", true);
     }
 
     @JsonRpcMethod
-    public String throwWithCause(String name) throws Exception {
-      throw new JsonRpcException(
-          JsonRpcException.INTERNAL_ERROR, "caused", new RuntimeException("root"));
+    public String throwsException(String name) {
+      throw new JsonRpcException(JsonRpcException.INTERNAL_ERROR, "caused");
     }
   }
 
   @Test
-  void shouldReturnResponseForValidRequest() {
-    ObjectMapper mapper = new ObjectMapper();
+  void shouldReturnResultForValidRequest() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
-
     var id = StringNode.valueOf("123");
     var response =
         service.dispatch(
             new JsonRpcRequest(
                 "2.0",
                 "HelloService.sayHello",
-                mapper.createObjectNode().put("name", "World"),
+                MAPPER.createObjectNode().put("name", "World"),
                 id));
-    assertThat(response).isNotNull();
-    assertThat(response.id()).isSameAs(id);
-    assertThat(response.result().stringValue()).isEqualTo("Hello, World!");
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
+    var result = (JsonRpcResult) response;
+    assertThat(result.result().stringValue()).isEqualTo("Hello, World!");
+    assertThat(result.id()).isSameAs(id);
   }
 
   @Test
-  void subsequentRequestsShouldReturnPreviouslyCalculatedMethods() {
-    ObjectMapper mapper = new ObjectMapper();
+  void subsequentRequestsShouldWork() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
-
     var id = StringNode.valueOf("123");
     var request =
         new JsonRpcRequest(
-            "2.0", "HelloService.sayHello", mapper.createObjectNode().put("name", "World"), id);
+            "2.0", "HelloService.sayHello", MAPPER.createObjectNode().put("name", "World"), id);
     service.dispatch(request);
     var response = service.dispatch(request);
-    assertThat(response).isNotNull();
-    assertThat(response.id()).isSameAs(id);
-    assertThat(response.result().stringValue()).isEqualTo("Hello, World!");
-  }
-
-  @Test
-  void missingMethodNameShouldThrowException() {
-    ObjectMapper mapper = new ObjectMapper();
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
-
-    var id = StringNode.valueOf("123");
-    var request =
-        new JsonRpcRequest("2.0", "bogus", mapper.createObjectNode().put("name", "World"), id);
-    assertThatThrownBy(() -> service.dispatch(request))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .extracting("code")
-        .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
+    assertThat(((JsonRpcResult) response).result().stringValue()).isEqualTo("Hello, World!");
   }
 
   @Test
   void shouldAllowNumericIds() {
-    ObjectMapper mapper = new ObjectMapper();
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
-
     var id = IntNode.valueOf(123);
     var response =
         service.dispatch(
             new JsonRpcRequest(
                 "2.0",
                 "HelloService.sayHello",
-                mapper.createObjectNode().put("name", "World"),
+                MAPPER.createObjectNode().put("name", "World"),
                 id));
-    assertThat(response).isNotNull();
-    assertThat(response.id()).isSameAs(id);
-    assertThat(response.result().stringValue()).isEqualTo("Hello, World!");
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
+    assertThat(((JsonRpcResult) response).id()).isSameAs(id);
   }
 
   @Test
-  void shouldReturnNullForNotificationRequest() {
-    ObjectMapper mapper = new ObjectMapper();
+  void shouldReturnNullForNotification() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
-
     var response =
         service.dispatch(
             new JsonRpcRequest(
                 "2.0",
                 "HelloService.sayHello",
-                mapper.createObjectNode().put("name", "World"),
+                MAPPER.createObjectNode().put("name", "World"),
                 null));
     assertThat(response).isNull();
   }
 
   @Test
-  void invalidJsonRpcValueShouldThrowException() {
-    ObjectMapper mapper = new ObjectMapper();
-    var service = new DefaultJsonRpcDispatcher(List.of());
-    var request =
-        new JsonRpcRequest(
-            "2.01",
-            "HelloService.sayHello",
-            mapper.createObjectNode().put("name", "World"),
-            StringNode.valueOf("123"));
-    assertThatThrownBy(() -> service.dispatch(request))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .extracting("code")
-        .isEqualTo(JsonRpcException.INVALID_REQUEST);
-  }
-
-  @Test
-  void missingMethodShouldThrowException() {
-    ObjectMapper mapper = new ObjectMapper();
-    var service = new DefaultJsonRpcDispatcher(List.of());
-    var request =
-        new JsonRpcRequest(
-            "2.0", null, mapper.createObjectNode().put("name", "World"), StringNode.valueOf("123"));
-    assertThatThrownBy(() -> service.dispatch(request))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .extracting("code")
-        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+  void nullIdShouldReturnResponseNotNotification() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.sayHello",
+                MAPPER.createObjectNode().put("name", "World"),
+                NullNode.getInstance()));
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
   }
 
   @Test
@@ -184,12 +145,12 @@ class DefaultJsonRpcDispatcherTest {
                 "HelloService.fireAndForget",
                 MAPPER.createObjectNode().put("name", "World"),
                 id));
-    assertThat(response).isNotNull();
-    assertThat(response.result().isNull()).isTrue();
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
+    assertThat(((JsonRpcResult) response).result().isNull()).isTrue();
   }
 
   @Test
-  void handlerReturningJsonRpcResponseShouldPassThrough() {
+  void handlerReturningJsonRpcResultShouldPassThrough() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var id = StringNode.valueOf("r1");
     var response =
@@ -199,42 +160,108 @@ class DefaultJsonRpcDispatcherTest {
                 "HelloService.rawResponse",
                 MAPPER.createObjectNode().put("name", "World"),
                 id));
-    assertThat(response).isNotNull();
-    assertThat(response.result().asString()).isEqualTo("raw:World");
-    assertThat(response.id()).isEqualTo(StringNode.valueOf("custom-id"));
-    assertThat(response.getMetadata("test", Boolean.class)).hasValue(true);
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
+    var result = (JsonRpcResult) response;
+    assertThat(result.result().asString()).isEqualTo("raw:World");
+    assertThat(result.id()).isEqualTo(StringNode.valueOf("custom-id"));
+    assertThat(result.getMetadata("test", Boolean.class)).hasValue(true);
+  }
+
+  // --- Error handling ---
+
+  @Test
+  void invalidJsonRpcValueShouldReturnError() {
+    var service = new DefaultJsonRpcDispatcher(List.of());
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.01",
+                "HelloService.sayHello",
+                MAPPER.createObjectNode().put("name", "World"),
+                StringNode.valueOf("123")));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    assertThat(((JsonRpcError) response).error().code())
+        .isEqualTo(JsonRpcException.INVALID_REQUEST);
   }
 
   @Test
-  void exceptionWithCauseShouldPropagate() {
+  void missingMethodShouldReturnError() {
+    var service = new DefaultJsonRpcDispatcher(List.of());
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                null,
+                MAPPER.createObjectNode().put("name", "World"),
+                StringNode.valueOf("123")));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    assertThat(((JsonRpcError) response).error().code())
+        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+  }
+
+  @Test
+  void missingMethodNameShouldReturnError() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "bogus",
+                MAPPER.createObjectNode().put("name", "World"),
+                StringNode.valueOf("123")));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    assertThat(((JsonRpcError) response).error().code())
+        .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
+  }
+
+  @Test
+  void wrongIdTypeShouldReturnError() {
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.sayHello",
+                MAPPER.createObjectNode().put("name", "World"),
+                MAPPER.createObjectNode()));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    assertThat(((JsonRpcError) response).error().code())
+        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+  }
+
+  @Test
+  void handlerExceptionShouldReturnError() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
     var id = StringNode.valueOf("e1");
-    var request =
-        new JsonRpcRequest(
-            "2.0",
-            "HelloService.throwWithCause",
-            MAPPER.createObjectNode().put("name", "World"),
-            id);
-    assertThatThrownBy(() -> service.dispatch(request))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .hasMessage("caused")
-        .extracting("code")
-        .isEqualTo(JsonRpcException.INTERNAL_ERROR);
+    var response =
+        service.dispatch(
+            new JsonRpcRequest(
+                "2.0",
+                "HelloService.throwsException",
+                MAPPER.createObjectNode().put("name", "World"),
+                id));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    var error = (JsonRpcError) response;
+    assertThat(error.error().code()).isEqualTo(JsonRpcException.INTERNAL_ERROR);
+    assertThat(error.error().message()).isEqualTo("caused");
+    assertThat(error.id()).isEqualTo(id);
   }
 
   @Test
-  void wrongIdTypeShouldThrowException() {
-    ObjectMapper mapper = new ObjectMapper();
+  void notificationErrorShouldReturnNull() {
+    var service = new DefaultJsonRpcDispatcher(List.of());
+    var response = service.dispatch(new JsonRpcRequest("2.01", "bad", null, null));
+    assertThat(response).isNull();
+  }
+
+  @Test
+  void rpcPrefixShouldReturnError() {
     var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
-    var request =
-        new JsonRpcRequest(
-            "2.0",
-            "HelloService.sayHello",
-            mapper.createObjectNode().put("name", "World"),
-            mapper.createObjectNode());
-    assertThatThrownBy(() -> service.dispatch(request))
-        .isExactlyInstanceOf(JsonRpcException.class)
-        .extracting("code")
-        .isEqualTo(JsonRpcException.INVALID_REQUEST);
+    var response =
+        service.dispatch(
+            new JsonRpcRequest("2.0", "rpc.discover", null, StringNode.valueOf("123")));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    assertThat(((JsonRpcError) response).error().code())
+        .isEqualTo(JsonRpcException.METHOD_NOT_FOUND);
   }
 }

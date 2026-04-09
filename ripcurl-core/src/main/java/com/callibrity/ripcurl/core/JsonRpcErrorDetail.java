@@ -13,25 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.callibrity.ripcurl.core.spi;
+package com.callibrity.ripcurl.core;
 
-import com.callibrity.ripcurl.core.JsonRpcRequest;
-import com.callibrity.ripcurl.core.JsonRpcResult;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import tools.jackson.databind.JsonNode;
 
-public interface JsonRpcMethod {
-
-  /**
-   * Returns the name of the JSON-RPC method.
-   *
-   * @return the name of the JSON-RPC method
-   */
-  String methodName();
-
-  /**
-   * Executes the JSON-RPC method with the given request.
-   *
-   * @param request the JSON-RPC request
-   * @return the JSON-RPC response
-   */
-  JsonRpcResult call(JsonRpcRequest request);
+/** The error detail object within a JSON-RPC error response. */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record JsonRpcErrorDetail(int code, String message, JsonNode data) {
+  public JsonRpcErrorDetail(int code, String message) {
+    this(code, message, null);
+  }
 }

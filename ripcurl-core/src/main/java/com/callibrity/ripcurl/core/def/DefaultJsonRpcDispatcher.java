@@ -18,6 +18,7 @@ package com.callibrity.ripcurl.core.def;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
+import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
@@ -35,8 +36,6 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
   private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
 
-  // --------------------------- CONSTRUCTORS ---------------------------
-
   public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
     this.methods =
         LazyInitializer.of(
@@ -46,12 +45,36 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
                     .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m)));
   }
 
-  // ------------------------ INTERFACE METHODS ------------------------
-
-  // --------------------- Interface JsonRpcDispatcher ---------------------
-
   @Override
   public JsonRpcResponse dispatch(JsonRpcRequest request) {
+    try {
+      validate(request);
+
+      var method =
+          ofNullable(methods.get().get(request.method()))
+              .orElseThrow(
+                  () ->
+                      new JsonRpcException(
+                          JsonRpcException.METHOD_NOT_FOUND,
+                          String.format("JSON-RPC method \"%s\" not found.", request.method())));
+
+      var response = method.call(request);
+
+      // No id field at all → notification, no response
+      if (request.id() == null) {
+        return null;
+      }
+      return response;
+    } catch (JsonRpcException e) {
+      // Notifications get no error response either
+      if (request.id() == null) {
+        return null;
+      }
+      return new JsonRpcError(e.getCode(), e.getMessage(), request.id());
+    }
+  }
+
+  private void validate(JsonRpcRequest request) {
     if (!JsonRpcProtocol.VERSION.equals(request.jsonrpc())) {
       throw new JsonRpcException(
           JsonRpcException.INVALID_REQUEST,
@@ -61,7 +84,12 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
       throw new JsonRpcException(
           JsonRpcException.INVALID_REQUEST, "JSON-RPC method name is required.");
     }
+    if (request.method().startsWith("rpc.")) {
+      throw new JsonRpcException(
+          JsonRpcException.METHOD_NOT_FOUND, "Methods starting with \"rpc.\" are reserved.");
+    }
     if (request.id() != null
+        && !request.id().isNull()
         && request.id().getNodeType() != JsonNodeType.STRING
         && request.id().getNodeType() != JsonNodeType.NUMBER) {
       throw new JsonRpcException(
@@ -70,20 +98,5 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
               "Invalid id type (%s). Must be a %s or %s.",
               request.id().getNodeType(), JsonNodeType.STRING, JsonNodeType.NUMBER));
     }
-
-    var method =
-        ofNullable(methods.get().get(request.method()))
-            .orElseThrow(
-                () ->
-                    new JsonRpcException(
-                        JsonRpcException.METHOD_NOT_FOUND,
-                        String.format("JSON-RPC method \"%s\" not found.", request.method())));
-
-    var response = method.call(request);
-
-    if (request.id() == null) {
-      return null;
-    }
-    return response;
   }
 }

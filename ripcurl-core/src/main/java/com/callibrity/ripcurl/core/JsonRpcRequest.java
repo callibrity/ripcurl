@@ -29,8 +29,13 @@ public record JsonRpcRequest(String jsonrpc, String method, JsonNode params, Jso
     return new JsonRpcRequest(JsonRpcProtocol.VERSION, method, params, null);
   }
 
-  /** Creates a JSON-RPC response for this request, echoing the id. */
-  public JsonRpcResponse response(JsonNode result) {
-    return new JsonRpcResponse(result, this.id);
+  /** Creates a successful JSON-RPC response for this request, echoing the id. */
+  public JsonRpcResult response(JsonNode result) {
+    return new JsonRpcResult(result, this.id);
+  }
+
+  /** Creates an error JSON-RPC response for this request, echoing the id. */
+  public JsonRpcError error(int code, String message) {
+    return new JsonRpcError(code, message, this.id);
   }
 }

@@ -18,7 +18,7 @@ package com.callibrity.ripcurl.core.annotation;
 import static java.util.Optional.ofNullable;
 
 import com.callibrity.ripcurl.core.JsonRpcRequest;
-import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.apache.commons.lang3.ClassUtils;
@@ -76,10 +76,10 @@ public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.
   }
 
   @Override
-  public JsonRpcResponse call(JsonRpcRequest request) {
+  public JsonRpcResult call(JsonRpcRequest request) {
     var result = invoker.invoke(request.params());
-    if (result instanceof JsonRpcResponse response) {
-      return response;
+    if (result instanceof JsonRpcResult jsonRpcResult) {
+      return jsonRpcResult;
     }
     if (result == null) {
       return request.response(NullNode.getInstance());
