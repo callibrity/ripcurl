@@ -121,7 +121,8 @@ class JsonRpcComplianceTest {
 
     @Test
     void methodMustBePresent() {
-      assertThatThrownBy(() -> new JsonRpcCall("2.0", null, null, intId(1)))
+      var id = intId(1);
+      assertThatThrownBy(() -> new JsonRpcCall("2.0", null, null, id))
           .isInstanceOf(NullPointerException.class);
     }
 

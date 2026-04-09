@@ -192,13 +192,9 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void nullMethodShouldThrow() {
-    assertThatThrownBy(
-            () ->
-                new JsonRpcCall(
-                    "2.0",
-                    null,
-                    MAPPER.createObjectNode().put("name", "World"),
-                    StringNode.valueOf("123")))
+    var params = MAPPER.createObjectNode().put("name", "World");
+    var id = StringNode.valueOf("123");
+    assertThatThrownBy(() -> new JsonRpcCall("2.0", null, params, id))
         .isInstanceOf(NullPointerException.class);
   }
 
