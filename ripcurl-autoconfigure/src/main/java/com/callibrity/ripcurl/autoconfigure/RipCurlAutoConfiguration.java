@@ -23,12 +23,13 @@ import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.util.List;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
 
-@AutoConfiguration
+@AutoConfiguration(after = MethodicalAutoConfiguration.class)
 public class RipCurlAutoConfiguration {
 
   // -------------------------- OTHER METHODS --------------------------

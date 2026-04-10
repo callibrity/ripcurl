@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.1.0
+
+### New Features
+- **`@JsonRpcParams` annotation** — Mark a parameter to receive the entire JSON-RPC `params` object deserialized into a typed record. Useful for strongly-typed request params:
+  ```java
+  @JsonRpcMethod("tools/call")
+  public CallToolResult callTool(@JsonRpcParams CallToolRequestParams params) {
+      // params is the deserialized record
+  }
+  ```
+- `JsonRpcParamsResolver` registered with `HIGHEST_PRECEDENCE` so `@JsonRpcParams` is checked before any other resolver.
+- New `RipCurlResolversAutoConfiguration` that runs before `MethodicalAutoConfiguration` to register RipCurl-provided parameter resolvers.
+
+### Changes
+- Upgraded Methodical to 0.3.0 (for `@Argument` annotation support)
+
 ## 2.0.0
 
 ### Breaking Changes
