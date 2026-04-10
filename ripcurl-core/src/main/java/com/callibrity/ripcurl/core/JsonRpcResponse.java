@@ -15,11 +15,32 @@
  */
 package com.callibrity.ripcurl.core;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import tools.jackson.databind.JsonNode;
 
-/** Sealed base for JSON-RPC 2.0 response types. */
+/**
+ * Sealed base for JSON-RPC 2.0 response types. Jackson deserializes this type via the annotated
+ * {@link #fromJson(JsonNode)} creator; the concrete subtype is chosen by presence of the {@code
+ * result} or {@code error} field.
+ */
 public sealed interface JsonRpcResponse extends JsonRpcMessage permits JsonRpcResult, JsonRpcError {
   String jsonrpc();
 
   JsonNode id();
+
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+  static JsonRpcResponse fromJson(JsonNode body) {
+    JsonNode id = body.get("id");
+    if (body.has("result")) {
+      return new JsonRpcResult(body.get("result"), id);
+    }
+    if (body.has("error")) {
+      JsonNode errorNode = body.get("error");
+      return new JsonRpcError(
+          new JsonRpcErrorDetail(
+              errorNode.path("code").intValue(), errorNode.path("message").asString(null)),
+          id);
+    }
+    throw new IllegalArgumentException("Unrecognized JSON-RPC response");
+  }
 }

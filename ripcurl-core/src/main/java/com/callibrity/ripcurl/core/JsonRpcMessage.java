@@ -15,43 +15,27 @@
  */
 package com.callibrity.ripcurl.core;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Sealed base for all JSON-RPC 2.0 message types. Use {@link #parse(JsonNode)} to deserialize an
- * incoming message into the appropriate type.
+ * Sealed base for all JSON-RPC 2.0 message types. Jackson deserializes this polymorphic type via
+ * the annotated {@link #fromJson(JsonNode)} creator, which dispatches to the appropriate concrete
+ * subtype based on the structural shape of the JSON (presence of {@code method}, {@code result}, or
+ * {@code error} fields). Use {@code objectMapper.treeToValue(node, JsonRpcMessage.class)} or {@code
+ * objectMapper.readerFor(JsonRpcMessage.class).readValue(json)}.
  */
 public sealed interface JsonRpcMessage permits JsonRpcRequest, JsonRpcResponse {
 
   String jsonrpc();
 
-  /**
-   * Parses a JSON-RPC message from a JsonNode, returning the appropriate concrete type.
-   *
-   * @param body the raw JSON body
-   * @return the parsed message
-   * @throws IllegalArgumentException if the message cannot be classified
-   */
-  static JsonRpcMessage parse(JsonNode body) {
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+  static JsonRpcMessage fromJson(JsonNode body) {
     if (body.has("method")) {
-      String jsonrpc = body.path("jsonrpc").asString(null);
-      String method = body.path("method").asString(null);
-      JsonNode params = body.get("params");
-      if (!body.has("id")) {
-        return new JsonRpcNotification(jsonrpc, method, params);
-      }
-      return new JsonRpcCall(jsonrpc, method, params, body.get("id"));
+      return JsonRpcRequest.fromJson(body);
     }
-    JsonNode id = body.get("id");
-    if (body.has("result")) {
-      return new JsonRpcResult(body.get("result"), id);
-    }
-    if (body.has("error")) {
-      JsonNode errorNode = body.get("error");
-      return new JsonRpcError(
-          new JsonRpcErrorDetail(
-              errorNode.path("code").intValue(), errorNode.path("message").asString(null)),
-          id);
+    if (body.has("result") || body.has("error")) {
+      return JsonRpcResponse.fromJson(body);
     }
     throw new IllegalArgumentException("Unrecognized JSON-RPC message");
   }

@@ -26,13 +26,13 @@ class JsonRpcMessageTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Test
-  void shouldParseCall() {
+  void shouldDeserializeCallViaJsonRpcMessage() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","method":"subtract","params":{"a":1},"id":1}
         """);
-    var message = JsonRpcMessage.parse(body);
+    var message = MAPPER.treeToValue(body, JsonRpcMessage.class);
     assertThat(message).isInstanceOf(JsonRpcCall.class);
     var call = (JsonRpcCall) message;
     assertThat(call.method()).isEqualTo("subtract");
@@ -40,13 +40,13 @@ class JsonRpcMessageTest {
   }
 
   @Test
-  void shouldParseNotification() {
+  void shouldDeserializeNotificationViaJsonRpcMessage() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","method":"update","params":[1,2,3]}
         """);
-    var message = JsonRpcMessage.parse(body);
+    var message = MAPPER.treeToValue(body, JsonRpcMessage.class);
     assertThat(message).isInstanceOf(JsonRpcNotification.class);
     var notification = (JsonRpcNotification) message;
     assertThat(notification.method()).isEqualTo("update");
@@ -54,25 +54,25 @@ class JsonRpcMessageTest {
   }
 
   @Test
-  void nullIdShouldParseAsCallNotNotification() {
+  void nullIdShouldDeserializeAsCallNotNotification() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","method":"test","id":null}
         """);
-    var message = JsonRpcMessage.parse(body);
+    var message = MAPPER.treeToValue(body, JsonRpcMessage.class);
     assertThat(message).isInstanceOf(JsonRpcCall.class);
     assertThat(((JsonRpcCall) message).id().isNull()).isTrue();
   }
 
   @Test
-  void shouldParseResult() {
+  void shouldDeserializeResultViaJsonRpcMessage() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","result":19,"id":1}
         """);
-    var message = JsonRpcMessage.parse(body);
+    var message = MAPPER.treeToValue(body, JsonRpcMessage.class);
     assertThat(message).isInstanceOf(JsonRpcResult.class);
     var result = (JsonRpcResult) message;
     assertThat(result.result().intValue()).isEqualTo(19);
@@ -80,13 +80,13 @@ class JsonRpcMessageTest {
   }
 
   @Test
-  void shouldParseError() {
+  void shouldDeserializeErrorViaJsonRpcMessage() {
     var body =
         MAPPER.readTree(
             """
         {"jsonrpc":"2.0","error":{"code":-32601,"message":"Not found"},"id":1}
         """);
-    var message = JsonRpcMessage.parse(body);
+    var message = MAPPER.treeToValue(body, JsonRpcMessage.class);
     assertThat(message).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) message;
     assertThat(error.error().code()).isEqualTo(-32601);
@@ -100,8 +100,84 @@ class JsonRpcMessageTest {
             """
         {"jsonrpc":"2.0","unknown":"field"}
         """);
-    assertThatThrownBy(() -> JsonRpcMessage.parse(body))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> MAPPER.treeToValue(body, JsonRpcMessage.class))
+        .rootCause()
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Unrecognized JSON-RPC message");
+  }
+
+  @Test
+  void shouldDeserializeResultViaJsonRpcResponseEntryPoint() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","result":{"ok":true},"id":"x"}
+        """);
+    var response = MAPPER.treeToValue(body, JsonRpcResponse.class);
+    assertThat(response).isInstanceOf(JsonRpcResult.class);
+    assertThat(((JsonRpcResult) response).id().asString()).isEqualTo("x");
+  }
+
+  @Test
+  void shouldDeserializeErrorViaJsonRpcResponseEntryPoint() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","error":{"code":-32600,"message":"bad"},"id":"x"}
+        """);
+    var response = MAPPER.treeToValue(body, JsonRpcResponse.class);
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    assertThat(((JsonRpcError) response).error().code()).isEqualTo(-32600);
+  }
+
+  @Test
+  void jsonRpcResponseEntryPointRejectsRequest() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","method":"test","id":1}
+        """);
+    assertThatThrownBy(() -> MAPPER.treeToValue(body, JsonRpcResponse.class))
+        .rootCause()
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Unrecognized JSON-RPC response");
+  }
+
+  @Test
+  void shouldDeserializeCallViaJsonRpcRequestEntryPoint() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","method":"ping","id":1}
+        """);
+    var request = MAPPER.treeToValue(body, JsonRpcRequest.class);
+    assertThat(request).isInstanceOf(JsonRpcCall.class);
+    assertThat(request.method()).isEqualTo("ping");
+  }
+
+  @Test
+  void shouldDeserializeNotificationViaJsonRpcRequestEntryPoint() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","method":"ping"}
+        """);
+    var request = MAPPER.treeToValue(body, JsonRpcRequest.class);
+    assertThat(request).isInstanceOf(JsonRpcNotification.class);
+    assertThat(request.method()).isEqualTo("ping");
+  }
+
+  @Test
+  void jsonRpcRequestEntryPointRejectsResponse() {
+    var body =
+        MAPPER.readTree(
+            """
+        {"jsonrpc":"2.0","result":"ok","id":1}
+        """);
+    assertThatThrownBy(() -> MAPPER.treeToValue(body, JsonRpcRequest.class))
+        .rootCause()
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("missing 'method' field");
   }
 
   @Test
@@ -135,10 +211,11 @@ class JsonRpcMessageTest {
         {"jsonrpc":"2.0","error":{"code":-1,"message":"bad"},"id":1}
         """);
 
-    assertThat(describe(JsonRpcMessage.parse(call))).isEqualTo("call");
-    assertThat(describe(JsonRpcMessage.parse(notification))).isEqualTo("notification");
-    assertThat(describe(JsonRpcMessage.parse(result))).isEqualTo("result");
-    assertThat(describe(JsonRpcMessage.parse(error))).isEqualTo("error");
+    assertThat(describe(MAPPER.treeToValue(call, JsonRpcMessage.class))).isEqualTo("call");
+    assertThat(describe(MAPPER.treeToValue(notification, JsonRpcMessage.class)))
+        .isEqualTo("notification");
+    assertThat(describe(MAPPER.treeToValue(result, JsonRpcMessage.class))).isEqualTo("result");
+    assertThat(describe(MAPPER.treeToValue(error, JsonRpcMessage.class))).isEqualTo("error");
   }
 
   private String describe(JsonRpcMessage message) {

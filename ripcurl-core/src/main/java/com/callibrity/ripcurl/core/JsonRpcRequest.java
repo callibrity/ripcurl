@@ -15,11 +15,14 @@
  */
 package com.callibrity.ripcurl.core;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import tools.jackson.databind.JsonNode;
 
 /**
  * Sealed base for JSON-RPC 2.0 request types. A "Request object" in the spec encompasses both calls
- * (with an id, expecting a response) and notifications (without an id, fire-and-forget).
+ * (with an id, expecting a response) and notifications (without an id, fire-and-forget). Jackson
+ * deserializes this type via the annotated {@link #fromJson(JsonNode)} creator; the concrete
+ * subtype is chosen by presence of the {@code id} field.
  */
 public sealed interface JsonRpcRequest extends JsonRpcMessage
     permits JsonRpcCall, JsonRpcNotification {
@@ -27,4 +30,18 @@ public sealed interface JsonRpcRequest extends JsonRpcMessage
   String method();
 
   JsonNode params();
+
+  @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+  static JsonRpcRequest fromJson(JsonNode body) {
+    if (!body.has("method")) {
+      throw new IllegalArgumentException("JSON-RPC request is missing 'method' field");
+    }
+    String jsonrpc = body.path("jsonrpc").asString(null);
+    String method = body.path("method").asString(null);
+    JsonNode params = body.get("params");
+    if (!body.has("id")) {
+      return new JsonRpcNotification(jsonrpc, method, params);
+    }
+    return new JsonRpcCall(jsonrpc, method, params, body.get("id"));
+  }
 }

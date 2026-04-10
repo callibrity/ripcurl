@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.2.0
+
+### Breaking Changes
+- **`JsonRpcMessage.parse(JsonNode)` is deleted.** Use Jackson directly:
+  `objectMapper.treeToValue(node, JsonRpcMessage.class)` or
+  `objectMapper.readerFor(JsonRpcMessage.class).readValue(json)`. The
+  same call style works for `JsonRpcRequest` and `JsonRpcResponse` as
+  polymorphic entry points.
+
+### New Features
+- **Jackson-polymorphic sealed hierarchies** — `JsonRpcMessage`,
+  `JsonRpcRequest`, and `JsonRpcResponse` are now directly
+  deserializable via Jackson without a hand-rolled `parse()` call. Each
+  sealed interface exposes a `@JsonCreator(mode = DELEGATING)` static
+  factory method that structurally sniffs the incoming tree and
+  dispatches to the correct concrete subtype (`JsonRpcCall`,
+  `JsonRpcNotification`, `JsonRpcResult`, `JsonRpcError`):
+  ```java
+  JsonRpcMessage msg = mapper.treeToValue(node, JsonRpcMessage.class);
+  JsonRpcResponse resp = mapper.readerFor(JsonRpcResponse.class).readValue(json);
+  ```
+- This is the key enabler for downstream libraries (e.g., mocapi) that
+  want to use typed mailboxes such as `Mailbox<JsonRpcResponse>` with
+  serializing backends like Redis — Jackson can now reconstruct the
+  correct sealed subtype on the receiver side.
+
+### Why `@JsonCreator` instead of `@JsonTypeInfo(Id.DEDUCTION)`
+`Id.DEDUCTION` was evaluated and found unsuitable. Jackson's deduction
+algorithm requires each subtype to have at least one property that no
+sibling has, and `JsonRpcNotification`'s property set
+(`{jsonrpc, method, params}`) is a strict subset of `JsonRpcCall`'s
+(`{jsonrpc, method, params, id}`). For notification-shaped JSON
+without an `id` field, deduction reports "2 candidates match" and
+fails. The `@JsonCreator` approach does explicit structural
+discrimination and handles every JSON-RPC 2.0 message shape correctly.
+
+### Migration
+| 2.1.x | 2.2.0 |
+|---|---|
+| `JsonRpcMessage.parse(body)` | `mapper.treeToValue(body, JsonRpcMessage.class)` |
+| `try { ... } catch (IllegalArgumentException e) { ... }` | Unchanged — creator throws `IllegalArgumentException`, Jackson wraps in `DatabindException` whose root cause is the original `IllegalArgumentException`. Use `assertThatThrownBy(...).rootCause().isInstanceOf(IllegalArgumentException.class)` in tests. |
+
 ## 2.1.0
 
 ### New Features
