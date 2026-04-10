@@ -19,7 +19,7 @@ Add the starter:
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-    <version>${ripcurl.version}</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
@@ -69,16 +69,33 @@ JsonRpcMessage (sealed)
     └── JsonRpcError (error + id) — failure
 ```
 
-Parse incoming JSON into the appropriate type:
+Deserialize incoming JSON directly into the appropriate type via Jackson —
+every sealed interface has a `@JsonCreator` that structurally dispatches to
+the right concrete subtype:
 
 ```java
-JsonRpcMessage message = JsonRpcMessage.parse(body);
+JsonRpcMessage message = objectMapper.treeToValue(body, JsonRpcMessage.class);
 return switch (message) {
     case JsonRpcCall call -> dispatcher.dispatch(call);
     case JsonRpcNotification notification -> handleNotification(notification);
     case JsonRpcResult result -> handleClientResult(result);
     case JsonRpcError error -> handleClientError(error);
 };
+```
+
+Spring controllers can also take the sealed type directly as `@RequestBody`,
+letting Spring's message converter do the deserialization:
+
+```java
+@PostMapping
+public ResponseEntity<?> handle(@RequestBody JsonRpcMessage message) {
+    return switch (message) {
+        case JsonRpcCall call -> ResponseEntity.ok(dispatcher.dispatch(call));
+        case JsonRpcNotification n -> { dispatcher.dispatch(n); yield ResponseEntity.accepted().build(); }
+        case JsonRpcResult r -> handleClientResult(r);
+        case JsonRpcError e -> handleClientError(e);
+    };
+}
 ```
 
 ## Writing a Controller
@@ -93,8 +110,7 @@ public class JsonRpcController {
     private final JsonRpcDispatcher dispatcher;
 
     @PostMapping(consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> handle(@RequestBody JsonNode body) {
-        JsonRpcRequest request = /* parse from body */;
+    public ResponseEntity<?> handle(@RequestBody JsonRpcRequest request) {
         JsonRpcResponse response = dispatcher.dispatch(request);
         if (response == null) {
             return ResponseEntity.noContent().build(); // notification
