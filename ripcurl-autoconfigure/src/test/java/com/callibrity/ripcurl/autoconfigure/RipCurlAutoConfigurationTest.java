@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcParamsResolver;
 import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ class RipCurlAutoConfigurationTest {
               AutoConfigurations.of(
                   JacksonAutoConfiguration.class,
                   Jackson3AutoConfiguration.class,
+                  RipCurlResolversAutoConfiguration.class,
                   MethodicalAutoConfiguration.class,
                   RipCurlAutoConfiguration.class));
 
@@ -57,6 +59,7 @@ class RipCurlAutoConfigurationTest {
               assertThat(ctx).hasSingleBean(JsonRpcDispatcher.class);
               assertThat(ctx).hasSingleBean(JsonRpcServiceMethodProvider.class);
               assertThat(ctx).hasSingleBean(AnnotationJsonRpcMethodProviderFactory.class);
+              assertThat(ctx).hasSingleBean(JsonRpcParamsResolver.class);
               assertThat(ctx).hasBean("defaultJsonRpcMethodProvider");
             });
   }

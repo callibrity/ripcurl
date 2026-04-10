@@ -37,11 +37,17 @@ class JsonRpcParamsResolverTest {
   public record Greeting(String message, int count) {}
 
   public static class Target {
-    public void pointMethod(@JsonRpcParams Point point) {}
+    public void pointMethod(@JsonRpcParams Point point) {
+      // fixture method — body intentionally empty, only the signature is reflected on
+    }
 
-    public void greetingMethod(@JsonRpcParams Greeting greeting) {}
+    public void greetingMethod(@JsonRpcParams Greeting greeting) {
+      // fixture method — body intentionally empty, only the signature is reflected on
+    }
 
-    public void unannotatedMethod(String name) {}
+    public void unannotatedMethod(String name) {
+      // fixture method — body intentionally empty, only the signature is reflected on
+    }
   }
 
   @Test
