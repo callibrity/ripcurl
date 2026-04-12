@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0
+
+### Breaking Changes
+- **Removed `JsonRpcResult.metadata` field**, along with `withMetadata(name, value)` and `getMetadata(name, type)`. This was a non-spec transport-hint bag that is no longer needed. Handlers that previously attached transport state to a result should use a sidechannel (method argument, `ThreadLocal`, or a wrapper type owned by the transport layer).
+
 ## 2.2.0
 
 ### Breaking Changes

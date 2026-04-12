@@ -31,47 +31,5 @@ class JsonRpcResultTest {
     assertThat(result.jsonrpc()).isEqualTo(JsonRpcProtocol.VERSION);
     assertThat(result.result()).isEqualTo(NullNode.getInstance());
     assertThat(result.id()).isEqualTo(TEST_ID);
-    assertThat(result.metadata()).isEmpty();
-  }
-
-  @Test
-  void withMetadataReturnsNewInstance() {
-    var original = new JsonRpcResult(NullNode.getInstance(), TEST_ID);
-    var updated = original.withMetadata("key", "value");
-    assertThat(original.metadata()).isEmpty();
-    assertThat(updated.metadata()).containsEntry("key", "value");
-  }
-
-  @Test
-  void withMetadataPreservesExisting() {
-    var result =
-        new JsonRpcResult(NullNode.getInstance(), TEST_ID)
-            .withMetadata("first", "one")
-            .withMetadata("second", "two");
-    assertThat(result.metadata()).containsEntry("first", "one").containsEntry("second", "two");
-  }
-
-  @Test
-  void getMetadataReturnsTypedValue() {
-    var result = new JsonRpcResult(NullNode.getInstance(), TEST_ID).withMetadata("count", 42);
-    assertThat(result.getMetadata("count", Integer.class)).hasValue(42);
-  }
-
-  @Test
-  void getMetadataReturnsEmptyForMissing() {
-    var result = new JsonRpcResult(NullNode.getInstance(), TEST_ID);
-    assertThat(result.getMetadata("missing", String.class)).isEmpty();
-  }
-
-  @Test
-  void metadataNotSerializedToJson() {
-    var result =
-        new JsonRpcResult(StringNode.valueOf("hello"), TEST_ID).withMetadata("secret", "hidden");
-    var json = new tools.jackson.databind.ObjectMapper().writeValueAsString(result);
-    assertThat(json)
-        .doesNotContain("secret")
-        .doesNotContain("hidden")
-        .doesNotContain("metadata")
-        .contains("hello");
   }
 }

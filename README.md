@@ -153,22 +153,10 @@ return ResponseEntity.ok(responses);
 
 `JsonRpcResponse` is a sealed interface:
 
-- **`JsonRpcResult`** — success. Has `result` (JsonNode), `id`, and `@JsonIgnore` metadata for transport hints.
+- **`JsonRpcResult`** — success. Has `result` (JsonNode) and `id`.
 - **`JsonRpcError`** — failure. Has `error` (code + message + optional data) and `id`.
 
 Result and error are mutually exclusive per the JSON-RPC 2.0 spec — enforced by the type system.
-
-### Returning a Custom Response
-
-Handlers can return `JsonRpcResult` directly to attach metadata (e.g., SSE emitters for streaming):
-
-```java
-@JsonRpcMethod("tools/call")
-public JsonRpcResult streamingCall(JsonRpcCall call) {
-    SseEmitter emitter = setupStreaming();
-    return call.result(null).withMetadata("emitter", emitter);
-}
-```
 
 ### Creating Correlated Responses
 

@@ -56,8 +56,7 @@ class DefaultJsonRpcDispatcherTest {
 
     @JsonRpcMethod
     public JsonRpcResult rawResponse(String name) {
-      return new JsonRpcResult(StringNode.valueOf("raw:" + name), StringNode.valueOf("custom-id"))
-          .withMetadata("test", true);
+      return new JsonRpcResult(StringNode.valueOf("raw:" + name), StringNode.valueOf("custom-id"));
     }
 
     @JsonRpcMethod
@@ -171,7 +170,6 @@ class DefaultJsonRpcDispatcherTest {
     var result = (JsonRpcResult) response;
     assertThat(result.result().asString()).isEqualTo("raw:World");
     assertThat(result.id()).isEqualTo(StringNode.valueOf("custom-id"));
-    assertThat(result.getMetadata("test", Boolean.class)).hasValue(true);
   }
 
   // --- Error handling ---
