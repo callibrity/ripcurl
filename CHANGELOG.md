@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.0
+
+### New Features
+- **AOT runtime hints for native image builds** — `JsonRpcServiceBeanAotProcessor` (registered as a `BeanRegistrationAotProcessor` via `META-INF/spring/aot.factories`) walks every `@JsonRpcService` bean at build time and registers the reflection metadata needed to dispatch JSON-RPC calls in a GraalVM native image without hand-written hints:
+  - An `ExecutableMode.INVOKE` reflection hint on each `@JsonRpcMethod` so the dispatcher can invoke it reflectively.
+  - Jackson binding hints on every `@JsonRpcParams` parameter type so typed params records can be deserialized.
+  - Jackson binding hints on the method return type so results can be serialized (skipped for `void` and `Void`).
+
+  Non-`@JsonRpcService` beans are ignored, and the processor is a no-op for plain JVM builds.
+
 ## 2.3.0
 
 ### Breaking Changes
