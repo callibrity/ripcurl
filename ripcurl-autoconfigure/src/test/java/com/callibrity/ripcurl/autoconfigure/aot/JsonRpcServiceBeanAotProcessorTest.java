@@ -38,6 +38,8 @@ class JsonRpcServiceBeanAotProcessorTest {
 
   public record GreetingResult(String message) {}
 
+  public record UnboundParam(String value) {}
+
   @JsonRpcService
   public static class AnnotatedService {
 
@@ -49,6 +51,16 @@ class JsonRpcServiceBeanAotProcessorTest {
     @JsonRpcMethod("ping")
     public void ping() {
       // fire-and-forget
+    }
+
+    @JsonRpcMethod("echo")
+    public GreetingResult echo(UnboundParam unbound) {
+      return new GreetingResult(unbound.value());
+    }
+
+    @JsonRpcMethod("noop")
+    public Void noop() {
+      return null;
     }
 
     // Not annotated — must be ignored.
@@ -131,6 +143,24 @@ class JsonRpcServiceBeanAotProcessorTest {
 
     assertThat(hints.reflection().typeHints())
         .noneMatch(th -> th.getType().equals(TypeReference.of(void.class)));
+  }
+
+  @Test
+  void skipsBindingHintsForBoxedVoidReturn() {
+    // noop() returns Void; verify no spurious Void.class hint was registered.
+    var hints = applyContribution(AnnotatedService.class);
+
+    assertThat(hints.reflection().typeHints())
+        .noneMatch(th -> th.getType().equals(TypeReference.of(Void.class)));
+  }
+
+  @Test
+  void doesNotRegisterBindingHintsForParametersWithoutJsonRpcParams() {
+    // echo(UnboundParam) has a parameter without @JsonRpcParams; verify it gets no binding hint.
+    var hints = applyContribution(AnnotatedService.class);
+
+    assertThat(hints.reflection().typeHints())
+        .noneMatch(th -> th.getType().equals(TypeReference.of(UnboundParam.class)));
   }
 
   private RuntimeHints applyContribution(Class<?> beanClass) {
