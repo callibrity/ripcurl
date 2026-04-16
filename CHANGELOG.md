@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.0
+
+### New Features
+- **Built-in runtime hints for the JSON-RPC message types** — `RipCurlRuntimeHints` (registered via `META-INF/spring/aot.factories` as a `RuntimeHintsRegistrar`) registers Jackson binding hints for the eight wire-level types: `JsonRpcMessage`, `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcCall`, `JsonRpcNotification`, `JsonRpcResult`, `JsonRpcError`, `JsonRpcErrorDetail`. These types use `@JsonCreator(DELEGATING)` factories that select a concrete subtype by structural sniffing, which Spring's binding-hints walker cannot discover transitively from the sealed interface alone. With this registrar in place, any RipCurl-based application can deserialize JSON-RPC messages in a GraalVM `native-image` build without hand-rolling these hints.
+
+### Notes
+- Native-image support is best-effort. The hint registration logic is unit-tested, but end-to-end validation requires building a native image of a real RipCurl application — currently exercised in downstream applications, not in this repository's CI. Bug reports welcome if you hit a missing hint in your own native build.
+
 ## 2.4.0
 
 ### New Features

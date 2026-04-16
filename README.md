@@ -19,7 +19,7 @@ Add the starter:
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-    <version>2.4.0</version>
+    <version>2.5.0</version>
 </dependency>
 ```
 
