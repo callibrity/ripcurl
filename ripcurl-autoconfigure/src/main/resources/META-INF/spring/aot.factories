@@ -1,2 +1,5 @@
 org.springframework.beans.factory.aot.BeanRegistrationAotProcessor=\
 com.callibrity.ripcurl.autoconfigure.aot.JsonRpcServiceBeanAotProcessor
+
+org.springframework.aot.hint.RuntimeHintsRegistrar=\
+com.callibrity.ripcurl.autoconfigure.aot.RipCurlRuntimeHints
