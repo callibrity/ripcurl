@@ -69,6 +69,11 @@ class DefaultJsonRpcDispatcherTest {
     public String throwsRuntimeException(String name) {
       throw new IllegalStateException("something broke");
     }
+
+    @JsonRpcMethod
+    public String throwsIllegalArgument(String name) {
+      throw new IllegalArgumentException("name must not be blank");
+    }
   }
 
   @Test
@@ -314,5 +319,58 @@ class DefaultJsonRpcDispatcherTest {
     var error = (JsonRpcError) response;
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
     assertThat(error.id()).isEqualTo(id);
+  }
+
+  @Test
+  void handlerThrowingIllegalArgumentExceptionProducesInvalidParams() {
+    // IllegalArgumentException is Java's built-in "bad argument" exception.
+    // IllegalArgumentException-
+    // Translator ships by default and maps it to -32602 Invalid params; the message is preserved
+    // because the developer deliberately authored it for the client.
+    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var id = StringNode.valueOf("ia1");
+    var response =
+        service.dispatch(
+            new JsonRpcCall(
+                "2.0",
+                "HelloService.throwsIllegalArgument",
+                MAPPER.createObjectNode().put("name", "World"),
+                id));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    var error = (JsonRpcError) response;
+    assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
+    assertThat(error.error().message()).isEqualTo("name must not be blank");
+  }
+
+  @Test
+  void twoArgConstructorUsesTheSuppliedRegistry() {
+    // The two-arg constructor lets callers supply a custom registry — e.g. to register
+    // application-specific translators or replace the defaults wholesale. Verify the dispatcher
+    // actually routes through that registry instead of silently falling back to defaults.
+    var customRegistry =
+        new DefaultJsonRpcExceptionTranslatorRegistry(
+            List.of(
+                new com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator<Exception>() {
+                  @Override
+                  public com.callibrity.ripcurl.core.JsonRpcErrorDetail translate(
+                      Exception exception) {
+                    return new com.callibrity.ripcurl.core.JsonRpcErrorDetail(
+                        -42000, "custom-override");
+                  }
+                }));
+    var service =
+        new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())), customRegistry);
+    var id = StringNode.valueOf("c1");
+    var response =
+        service.dispatch(
+            new JsonRpcCall(
+                "2.0",
+                "HelloService.throwsRuntimeException",
+                MAPPER.createObjectNode().put("name", "World"),
+                id));
+    assertThat(response).isInstanceOf(JsonRpcError.class);
+    var error = (JsonRpcError) response;
+    assertThat(error.error().code()).isEqualTo(-42000);
+    assertThat(error.error().message()).isEqualTo("custom-override");
   }
 }

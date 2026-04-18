@@ -62,6 +62,7 @@
     <modules>
         <module>ripcurl-core</module>
         <module>ripcurl-autoconfigure</module>
+        <module>ripcurl-jakarta-validation</module>
         <module>ripcurl-spring-boot-starter</module>
     </modules>
 
