@@ -19,7 +19,7 @@ Add the starter:
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-    <version>2.5.0</version>
+    <version>2.6.0</version>
 </dependency>
 ```
 
@@ -188,6 +188,42 @@ throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Name is required");
 ## Method Invocation
 
 RipCurl uses [Methodical](https://github.com/jwcarman/methodical) for pluggable reflection-based parameter resolution. Custom `ParameterResolver<A>` beans are automatically picked up — register them as Spring beans with `@Order` to control priority.
+
+## Jakarta Validation (optional)
+
+If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied to your `@JsonRpcMethod` parameters and return values, add the Methodical Jakarta Validation module alongside Spring Boot's validation starter, plus RipCurl's jakarta-validation module so violations surface as proper JSON-RPC errors:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.jwcarman.methodical</groupId>
+    <artifactId>methodical-jakarta-validation</artifactId>
+    <version>${methodical.version}</version>
+</dependency>
+<dependency>
+    <groupId>com.callibrity.ripcurl</groupId>
+    <artifactId>ripcurl-jakarta-validation</artifactId>
+    <version>2.6.0</version>
+</dependency>
+```
+
+Methodical's autoconfiguration wires the validator into the invocation pipeline. RipCurl's `ConstraintViolationExceptionTranslator` (auto-registered when `ripcurl-jakarta-validation` is on the classpath) translates the resulting `ConstraintViolationException` into a `-32602 Invalid params` JSON-RPC error, emitting per-violation detail as a `[{field, message}, ...]` array in the response's `data` field:
+
+```json
+{
+  "code": -32602,
+  "message": "Invalid params",
+  "data": [
+    {"field": "name", "message": "must not be blank"},
+    {"field": "age",  "message": "must be greater than or equal to 0"}
+  ]
+}
+```
+
+`invalidValue` is deliberately omitted — reflecting the rejected input back at the client risks leaking sensitive parameters (passwords, tokens, PII). Clients that need that detail should capture it at the call site.
 
 ## Requirements
 

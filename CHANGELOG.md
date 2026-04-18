@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.6.0
+
+### New Features
+- **Exception-to-JSON-RPC-error translator SPI** — new `JsonRpcExceptionTranslator<E extends Exception>` and `JsonRpcExceptionTranslatorRegistry` in `ripcurl-core`. Modeled after JAX-RS `ExceptionMapper<E>`: translators are named classes implementing the interface with a concrete exception type; the handled type is resolved reflectively via Specular's `TypeRef` at bean construction, so implementers write one method and never restate the type. The default registry keys translators by exact exception class and resolves at dispatch by walking the thrown exception's superclass chain (`<E extends Exception>` means E is a class, not an interface, so a plain `getSuperclass()` walk suffices). When no match is found, a built-in fallback returns `-32603 Internal error` with a deliberately-generic message to avoid leaking implementation details, and logs the full exception at ERROR for operators. Applications can replace the fallback by registering their own `JsonRpcExceptionTranslator<Exception>`. Duplicate registrations for the same type are rejected at construction.
+- **Built-in translators registered as beans via `ripcurl-autoconfigure`**, each `@ConditionalOnMissingBean` so apps override individually without replacing the whole registry:
+  - `DefaultJsonRpcExceptionTranslator` preserves a `JsonRpcException`'s self-declared code and message.
+  - `IllegalArgumentExceptionTranslator` maps Java's built-in "bad argument" exception to `-32602 Invalid params`, so handlers can `throw new IllegalArgumentException(...)` without needing to know about `JsonRpcException`.
+  - `ParameterResolutionExceptionTranslator` maps methodical's `ParameterResolutionException` to `-32602`.
+- **New `ripcurl-jakarta-validation` module** — ships `ConstraintViolationExceptionTranslator` which maps Jakarta Bean Validation's `ConstraintViolationException` to `-32602 Invalid params` with per-violation detail (`field`, `message`) emitted as a JSON array in the error response's `data` field. `invalidValue` is deliberately omitted to avoid leaking sensitive inputs through error responses. The module is Spring-free; Spring wiring lives in `ripcurl-autoconfigure` as `RipCurlJakartaValidationAutoConfiguration`, gated by `@ConditionalOnClass` on both `ConstraintViolationException` (the API) and `ConstraintViolationExceptionTranslator` (our implementation) so apps depending on `jakarta.validation-api` from an unrelated path don't trigger a `NoClassDefFoundError`.
+- **Native-image hints** for the exception translator SPI and all built-in translators, so `TypeRef` can resolve each translator's `<E>` under GraalVM `native-image` without losing the generic-signature metadata. Jakarta validation hints are registered via `@ImportRuntimeHints` on the jakarta autoconfig (not `aot.factories`) so they only apply when the optional `ripcurl-jakarta-validation` module is on the classpath.
+
+### Changed
+- **Bumped methodical `0.3.0` → `0.5.0`.** Transitively pulls Specular (`org.jwcarman.specular`) into the classpath. `ParameterInfo.of` signature changed to take a single `TypeRef<?>` instead of `(Class, Type)`; `org.jwcarman.methodical.reflect.Types` was removed. Only one test fixture in `ripcurl-core` needed updating — main code reads `info.resolvedType()` which is unchanged.
+- **Dispatcher's outer catch narrowed from `Throwable` to `Exception`.** JVM-fatal `Error`s (OOM, StackOverflow, LinkageError) now propagate unchanged — matching Spring MVC, JAX-RS, and Spring Security practice. Attempting to serialize a JSON-RPC response during a fatal JVM condition is unsafe; operators get a clean stack trace instead of a swallowed failure. The `JsonRpcExceptionTranslator` SPI bound matches (`<E extends Exception>`).
+
+### Notes
+- The new SPI is additive — no breaking changes. `DefaultJsonRpcDispatcher` gains a two-arg constructor accepting a `JsonRpcExceptionTranslatorRegistry`; the single-arg form still works and wires a registry populated with the built-in translators by default.
+- Applications that relied on the old `DefaultJsonRpcDispatcher` behavior of returning the raw exception message on the catch-all path will now see `"Internal error"` instead. The thrown message is still available in server logs; the change is specifically to stop leaking implementation detail to clients. Apps that want the old behavior can register a `JsonRpcExceptionTranslator<Exception>` that passes `exception.getMessage()` through.
+
 ## 2.5.0
 
 ### New Features
