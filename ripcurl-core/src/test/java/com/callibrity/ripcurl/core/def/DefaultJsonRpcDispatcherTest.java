@@ -296,7 +296,9 @@ class DefaultJsonRpcDispatcherTest {
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR);
-    assertThat(error.error().message()).isEqualTo("something broke");
+    // The registry's built-in fallback scrubs the exception message — "something broke" is
+    // implementation detail the client shouldn't see.
+    assertThat(error.error().message()).isEqualTo("Internal error");
     assertThat(error.id()).isEqualTo(id);
   }
 

@@ -19,12 +19,19 @@ import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslator;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslatorRegistry;
+import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
+import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.util.List;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import tools.jackson.databind.ObjectMapper;
@@ -46,8 +53,34 @@ public class RipCurlAutoConfiguration {
   }
 
   @Bean
-  public JsonRpcDispatcher jsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
-    return new DefaultJsonRpcDispatcher(providers);
+  public JsonRpcDispatcher jsonRpcDispatcher(
+      List<JsonRpcMethodProvider> providers, JsonRpcExceptionTranslatorRegistry translators) {
+    return new DefaultJsonRpcDispatcher(providers, translators);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public JsonRpcExceptionTranslatorRegistry jsonRpcExceptionTranslatorRegistry(
+      List<JsonRpcExceptionTranslator<?>> translators) {
+    return new DefaultJsonRpcExceptionTranslatorRegistry(translators);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public DefaultJsonRpcExceptionTranslator defaultJsonRpcExceptionTranslator() {
+    return new DefaultJsonRpcExceptionTranslator();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public IllegalArgumentExceptionTranslator illegalArgumentExceptionTranslator() {
+    return new IllegalArgumentExceptionTranslator();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  public ParameterResolutionExceptionTranslator parameterResolutionExceptionTranslator() {
+    return new ParameterResolutionExceptionTranslator();
   }
 
   @Bean

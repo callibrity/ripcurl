@@ -20,19 +20,21 @@ import static java.util.Optional.ofNullable;
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
+import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
 import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import com.callibrity.ripcurl.core.util.LazyInitializer;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.jwcarman.methodical.ParameterResolutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.JsonNodeType;
@@ -42,8 +44,28 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
   private static final Logger log = LoggerFactory.getLogger(DefaultJsonRpcDispatcher.class);
 
   private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
+  private final JsonRpcExceptionTranslatorRegistry translators;
 
+  /**
+   * Convenience constructor that wires a {@link DefaultJsonRpcExceptionTranslatorRegistry}
+   * populated with the built-in translators: {@link DefaultJsonRpcExceptionTranslator}, {@link
+   * IllegalArgumentExceptionTranslator}, and {@link ParameterResolutionExceptionTranslator}. The
+   * registry's own built-in fallback handles any uncaught exception as {@code -32603 Internal
+   * error}. Suitable when no custom exception-to-JSON-RPC-error mapping is needed.
+   */
   public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
+    this(
+        providers,
+        new DefaultJsonRpcExceptionTranslatorRegistry(
+            List.of(
+                new DefaultJsonRpcExceptionTranslator(),
+                new IllegalArgumentExceptionTranslator(),
+                new ParameterResolutionExceptionTranslator())));
+  }
+
+  public DefaultJsonRpcDispatcher(
+      List<JsonRpcMethodProvider> providers, JsonRpcExceptionTranslatorRegistry translators) {
+    this.translators = Objects.requireNonNull(translators, "translators");
     this.methods =
         LazyInitializer.of(
             () -> {
@@ -75,13 +97,9 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
                           JsonRpcProtocol.METHOD_NOT_FOUND,
                           String.format("JSON-RPC method \"%s\" not found.", call.method())));
       return method.call(call);
-    } catch (ParameterResolutionException e) {
-      return new JsonRpcError(JsonRpcProtocol.INVALID_PARAMS, e.getMessage(), call.id());
-    } catch (JsonRpcException e) {
-      return new JsonRpcError(e.getCode(), e.getMessage(), call.id());
-    } catch (RuntimeException e) {
-      log.error("Unexpected error dispatching JSON-RPC call '{}'", call.method(), e);
-      return new JsonRpcError(JsonRpcProtocol.INTERNAL_ERROR, e.getMessage(), call.id());
+    } catch (Exception e) {
+      JsonRpcErrorDetail detail = translators.translate(e);
+      return new JsonRpcError(detail, call.id());
     }
   }
 
