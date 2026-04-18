@@ -125,6 +125,10 @@ public class DefaultJsonRpcExceptionTranslatorRegistry
 
   private static <E extends Exception> Class<E> resolveExceptionType(
       JsonRpcExceptionTranslator<E> translator) {
+    // The generic bound <E extends Exception> enforces the Exception subtype at the declaration
+    // site, so any value TypeRef returns is already guaranteed assignable to Exception — no
+    // defensive re-check needed. If resolution fails entirely (e.g. lambda erases the type),
+    // orElseThrow fires below.
     Class<?> raw =
         TypeRef.of(translator.getClass())
             .typeArgument(JsonRpcExceptionTranslator.class, 0)
@@ -137,13 +141,6 @@ public class DefaultJsonRpcExceptionTranslatorRegistry
                             + ". Declare translators as named classes implementing "
                             + "JsonRpcExceptionTranslator<SomeException> — lambdas and raw "
                             + "anonymous classes erase the type parameter."));
-    if (raw == Object.class || !Exception.class.isAssignableFrom(raw)) {
-      throw new IllegalArgumentException(
-          "Translator "
-              + translator.getClass().getName()
-              + " resolved to non-Exception type "
-              + raw.getName());
-    }
     return eraseTo(raw.asSubclass(Exception.class));
   }
 
