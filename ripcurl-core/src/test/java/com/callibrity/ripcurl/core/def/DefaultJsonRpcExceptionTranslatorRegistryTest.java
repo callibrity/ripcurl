@@ -73,7 +73,8 @@ class DefaultJsonRpcExceptionTranslatorRegistryTest {
       // Guard against this at registration rather than letting a translator sit there unreachable.
       JsonRpcExceptionTranslator<Exception> lambda =
           exception -> new JsonRpcErrorDetail(0, exception.getMessage());
-      assertThatThrownBy(() -> new DefaultJsonRpcExceptionTranslatorRegistry(List.of(lambda)))
+      List<JsonRpcExceptionTranslator<?>> translators = List.of(lambda);
+      assertThatThrownBy(() -> new DefaultJsonRpcExceptionTranslatorRegistry(translators))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Unable to resolve the exception type parameter");
     }
