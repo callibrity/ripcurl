@@ -25,6 +25,10 @@ import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
 import com.callibrity.ripcurl.core.JsonRpcResult;
+import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslator;
+import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
+import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
+import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator;
 import org.junit.jupiter.api.Test;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.TypeReference;
@@ -44,6 +48,20 @@ class RipCurlRuntimeHintsTest {
     assertTypeHintRegistered(hints, JsonRpcResult.class);
     assertTypeHintRegistered(hints, JsonRpcError.class);
     assertTypeHintRegistered(hints, JsonRpcErrorDetail.class);
+  }
+
+  @Test
+  void registersReflectionHintsForTheExceptionTranslatorSpiAndBuiltIns() {
+    // The registry reads the exception type via TypeRef at bean-init time. Under native-image,
+    // generic signatures are stripped unless the class is explicitly registered — missing these
+    // hints would surface as "Unable to resolve the exception type parameter" at startup.
+    var hints = new RuntimeHints();
+    new RipCurlRuntimeHints().registerHints(hints, getClass().getClassLoader());
+
+    assertTypeHintRegistered(hints, JsonRpcExceptionTranslator.class);
+    assertTypeHintRegistered(hints, DefaultJsonRpcExceptionTranslator.class);
+    assertTypeHintRegistered(hints, IllegalArgumentExceptionTranslator.class);
+    assertTypeHintRegistered(hints, ParameterResolutionExceptionTranslator.class);
   }
 
   private static void assertTypeHintRegistered(RuntimeHints hints, Class<?> type) {

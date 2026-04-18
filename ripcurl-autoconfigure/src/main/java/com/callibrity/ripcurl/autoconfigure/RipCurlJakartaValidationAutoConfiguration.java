@@ -15,6 +15,7 @@
  */
 package com.callibrity.ripcurl.autoconfigure;
 
+import com.callibrity.ripcurl.autoconfigure.aot.RipCurlJakartaValidationRuntimeHints;
 import com.callibrity.ripcurl.jakarta.ConstraintViolationExceptionTranslator;
 import jakarta.validation.ConstraintViolationException;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
@@ -22,6 +23,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 /**
  * Registers a {@link ConstraintViolationExceptionTranslator} so Jakarta validation failures on
@@ -40,6 +42,7 @@ import org.springframework.context.annotation.Bean;
   ConstraintViolationException.class,
   ConstraintViolationExceptionTranslator.class
 })
+@ImportRuntimeHints(RipCurlJakartaValidationRuntimeHints.class)
 public class RipCurlJakartaValidationAutoConfiguration {
 
   @Bean
