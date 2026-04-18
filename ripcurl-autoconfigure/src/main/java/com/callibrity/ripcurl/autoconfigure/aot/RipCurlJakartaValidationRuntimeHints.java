@@ -16,7 +16,6 @@
 package com.callibrity.ripcurl.autoconfigure.aot;
 
 import com.callibrity.ripcurl.jakarta.ConstraintViolationExceptionTranslator;
-import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 
@@ -36,8 +35,6 @@ public class RipCurlJakartaValidationRuntimeHints implements RuntimeHintsRegistr
 
   @Override
   public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-    hints
-        .reflection()
-        .registerType(ConstraintViolationExceptionTranslator.class, MemberCategory.PUBLIC_CLASSES);
+    hints.reflection().registerType(ConstraintViolationExceptionTranslator.class);
   }
 }

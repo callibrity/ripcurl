@@ -28,7 +28,6 @@ import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
 import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
-import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
 
@@ -64,19 +63,13 @@ public class RipCurlRuntimeHints implements RuntimeHintsRegistrar {
     BINDING.registerReflectionHints(hints.reflection(), JsonRpcError.class);
     BINDING.registerReflectionHints(hints.reflection(), JsonRpcErrorDetail.class);
 
-    // The SPI interface itself — TypeRef reads its type parameters to drive resolution.
+    // TypeRef reads generic-interface metadata off these classes at registry construction to
+    // resolve each translator's <E extends Exception> parameter. Class-level registration is
+    // sufficient — getGenericInterfaces() is intrinsic metadata on the Class object itself and
+    // doesn't require field/method introspection, so no MemberCategory is needed.
     hints.reflection().registerType(JsonRpcExceptionTranslator.class);
-    // Each built-in translator needs its generic interface signature preserved so TypeRef can
-    // extract the bound exception type. PUBLIC_CLASSES keeps the class visible; the binding
-    // registrar above covers field/method access we don't need here — just the type metadata.
-    hints
-        .reflection()
-        .registerType(DefaultJsonRpcExceptionTranslator.class, MemberCategory.PUBLIC_CLASSES);
-    hints
-        .reflection()
-        .registerType(IllegalArgumentExceptionTranslator.class, MemberCategory.PUBLIC_CLASSES);
-    hints
-        .reflection()
-        .registerType(ParameterResolutionExceptionTranslator.class, MemberCategory.PUBLIC_CLASSES);
+    hints.reflection().registerType(DefaultJsonRpcExceptionTranslator.class);
+    hints.reflection().registerType(IllegalArgumentExceptionTranslator.class);
+    hints.reflection().registerType(ParameterResolutionExceptionTranslator.class);
   }
 }
