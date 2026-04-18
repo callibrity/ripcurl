@@ -23,7 +23,7 @@ import java.lang.reflect.Parameter;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
-import org.jwcarman.methodical.reflect.Types;
+import org.jwcarman.specular.TypeRef;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.NullNode;
@@ -120,8 +120,8 @@ class JsonRpcParamsResolverTest {
   private static ParameterInfo paramInfo(String methodName, int index) throws Exception {
     Method method = Target.class.getMethod(methodName, parameterTypes(methodName));
     Parameter parameter = method.getParameters()[index];
-    Class<?> resolvedType = Types.resolveParameterType(parameter, Target.class);
-    return ParameterInfo.of(parameter, index, resolvedType, parameter.getParameterizedType());
+    TypeRef<?> typeRef = TypeRef.parameterType(parameter, Target.class);
+    return ParameterInfo.of(parameter, index, typeRef);
   }
 
   private static Class<?>[] parameterTypes(String methodName) {
