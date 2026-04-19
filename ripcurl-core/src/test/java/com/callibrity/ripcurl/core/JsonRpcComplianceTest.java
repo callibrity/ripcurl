@@ -64,7 +64,8 @@ class JsonRpcComplianceTest {
     var factory =
         new DefaultAnnotationJsonRpcMethodProviderFactory(
             MAPPER,
-            new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(MAPPER))));
+            new DefaultMethodInvokerFactory(),
+            List.of(new Jackson3ParameterResolver(MAPPER)));
     dispatcher = new DefaultJsonRpcDispatcher(List.of(factory.create(new TestService())));
   }
 

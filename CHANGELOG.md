@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.0
+
+### Changed
+- **Bumped methodical `0.5.0` → `0.6.0`.** Methodical's invocation model changed: resolvers and interceptors are now configured per-invoker via a `Consumer<MethodInvokerConfig>` lambda on `MethodInvokerFactory.create(...)` rather than held as a frozen list on the factory. `@Argument` is now a built-in tail resolver with a type-compatibility guard, so unbindable parameters fail loudly instead of silently deserializing into nonsense. Jakarta validation moves from a separate `MethodValidatorFactory` track to a regular `MethodInterceptor<Object>` (`JakartaValidationInterceptor`), unifying the extension model.
+- **`DefaultAnnotationJsonRpcMethodProviderFactory` constructor** now takes a `List<ParameterResolver<? super JsonNode>>` (and optionally a `List<MethodInterceptor<? super JsonNode>>`) alongside the `MethodInvokerFactory`. `JsonRpcServiceMethodProvider` and `RipCurlAutoConfiguration` thread the same lists through to invoker creation.
+- **Extension point**: downstream apps or starters contribute custom behavior by registering beans of type `ParameterResolver<? super JsonNode>` or `MethodInterceptor<? super JsonNode>`. Spring's generic-aware list injection filters by the wildcard, so interceptors parameterized for unrelated root types (e.g., a Mocapi `MethodInterceptor<McpRequest>` on the same classpath) are correctly excluded from the RipCurl pipeline. Bean order (`@Order`) determines resolver/interceptor traversal order — first-added is first-applied.
+
+### Notes
+- No user-facing API break for handler code: `@JsonRpcMethod`-annotated methods with plain parameters still resolve by name/index through the Jackson resolver (still auto-registered by Methodical's `Jackson3AutoConfiguration`) and the `@Argument` tail. `@JsonRpcParams` behavior is unchanged.
+- The construction-site signatures of `DefaultAnnotationJsonRpcMethodProviderFactory` and `JsonRpcServiceMethodProvider` changed. Callers wiring these outside of Spring auto-configuration (e.g., test fixtures) must pass the resolver list explicitly.
+
 ## 2.6.0
 
 ### New Features

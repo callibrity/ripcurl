@@ -30,10 +30,13 @@ import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import java.util.List;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(after = MethodicalAutoConfiguration.class)
@@ -43,8 +46,12 @@ public class RipCurlAutoConfiguration {
 
   @Bean
   public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(
-      ApplicationContext ctx, ObjectMapper mapper, MethodInvokerFactory invokerFactory) {
-    return new JsonRpcServiceMethodProvider(ctx, mapper, invokerFactory);
+      ApplicationContext ctx,
+      ObjectMapper mapper,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors) {
+    return new JsonRpcServiceMethodProvider(ctx, mapper, invokerFactory, resolvers, interceptors);
   }
 
   @Bean
@@ -85,7 +92,11 @@ public class RipCurlAutoConfiguration {
 
   @Bean
   public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(
-      ObjectMapper objectMapper, MethodInvokerFactory invokerFactory) {
-    return new DefaultAnnotationJsonRpcMethodProviderFactory(objectMapper, invokerFactory);
+      ObjectMapper objectMapper,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors) {
+    return new DefaultAnnotationJsonRpcMethodProviderFactory(
+        objectMapper, invokerFactory, resolvers, interceptors);
   }
 }

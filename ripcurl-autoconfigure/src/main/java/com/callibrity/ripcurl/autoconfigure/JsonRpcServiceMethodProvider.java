@@ -22,7 +22,10 @@ import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.context.ApplicationContext;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 public class JsonRpcServiceMethodProvider implements JsonRpcMethodProvider {
@@ -34,14 +37,22 @@ public class JsonRpcServiceMethodProvider implements JsonRpcMethodProvider {
   private final ApplicationContext ctx;
   private final ObjectMapper mapper;
   private final MethodInvokerFactory invokerFactory;
+  private final List<ParameterResolver<? super JsonNode>> resolvers;
+  private final List<MethodInterceptor<? super JsonNode>> interceptors;
 
   // --------------------------- CONSTRUCTORS ---------------------------
 
   public JsonRpcServiceMethodProvider(
-      ApplicationContext ctx, ObjectMapper mapper, MethodInvokerFactory invokerFactory) {
+      ApplicationContext ctx,
+      ObjectMapper mapper,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors) {
     this.ctx = ctx;
     this.mapper = mapper;
     this.invokerFactory = invokerFactory;
+    this.resolvers = List.copyOf(resolvers);
+    this.interceptors = List.copyOf(interceptors);
   }
 
   // ------------------------ INTERFACE METHODS ------------------------
@@ -61,7 +72,9 @@ public class JsonRpcServiceMethodProvider implements JsonRpcMethodProvider {
         ctx.getBeansWithAnnotation(JsonRpcService.class).values().stream()
             .flatMap(
                 bean ->
-                    AnnotationJsonRpcMethod.createMethods(mapper, bean, invokerFactory).stream())
+                    AnnotationJsonRpcMethod.createMethods(
+                        mapper, bean, invokerFactory, resolvers, interceptors)
+                        .stream())
             .toList();
   }
 }

@@ -27,6 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvoker;
 import org.jwcarman.methodical.MethodInvokerFactory;
+import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -46,10 +48,17 @@ public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.
   // -------------------------- STATIC METHODS --------------------------
 
   public static List<AnnotationJsonRpcMethod> createMethods(
-      ObjectMapper mapper, Object targetObject, MethodInvokerFactory invokerFactory) {
+      ObjectMapper mapper,
+      Object targetObject,
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors) {
     return MethodUtils.getMethodsListWithAnnotation(targetObject.getClass(), JsonRpcMethod.class)
         .stream()
-        .map(method -> new AnnotationJsonRpcMethod(mapper, targetObject, method, invokerFactory))
+        .map(
+            method ->
+                new AnnotationJsonRpcMethod(
+                    mapper, targetObject, method, invokerFactory, resolvers, interceptors))
         .toList();
   }
 
@@ -59,9 +68,19 @@ public class AnnotationJsonRpcMethod implements com.callibrity.ripcurl.core.spi.
       ObjectMapper mapper,
       Object targetObject,
       Method method,
-      MethodInvokerFactory invokerFactory) {
+      MethodInvokerFactory invokerFactory,
+      List<ParameterResolver<? super JsonNode>> resolvers,
+      List<MethodInterceptor<? super JsonNode>> interceptors) {
     this.mapper = mapper;
-    this.invoker = invokerFactory.create(method, targetObject, JsonNode.class);
+    this.invoker =
+        invokerFactory.create(
+            method,
+            targetObject,
+            JsonNode.class,
+            cfg -> {
+              resolvers.forEach(cfg::resolver);
+              interceptors.forEach(cfg::interceptor);
+            });
     var annotation = method.getAnnotation(JsonRpcMethod.class);
     String className = ClassUtils.getSimpleName(targetObject);
     String methodName = method.getName();

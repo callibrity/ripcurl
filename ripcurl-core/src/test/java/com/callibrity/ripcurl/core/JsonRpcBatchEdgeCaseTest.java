@@ -94,7 +94,8 @@ class JsonRpcBatchEdgeCaseTest {
     var factory =
         new DefaultAnnotationJsonRpcMethodProviderFactory(
             MAPPER,
-            new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(MAPPER))));
+            new DefaultMethodInvokerFactory(),
+            List.of(new Jackson3ParameterResolver(MAPPER)));
     return new DefaultJsonRpcDispatcher(List.of(factory.create(service)));
   }
 

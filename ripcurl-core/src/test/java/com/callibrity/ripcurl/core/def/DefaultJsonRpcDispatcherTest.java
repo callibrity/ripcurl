@@ -41,7 +41,9 @@ class DefaultJsonRpcDispatcherTest {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private final AnnotationJsonRpcMethodProviderFactory factory =
       new DefaultAnnotationJsonRpcMethodProviderFactory(
-          MAPPER, new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(MAPPER))));
+          MAPPER,
+          new DefaultMethodInvokerFactory(),
+          List.of(new Jackson3ParameterResolver(MAPPER)));
 
   public static class HelloService {
     @JsonRpcMethod

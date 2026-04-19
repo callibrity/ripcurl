@@ -57,10 +57,9 @@ class JsonRpcParamsIntegrationTest {
           List.of(
               new DefaultAnnotationJsonRpcMethodProviderFactory(
                       MAPPER,
-                      new DefaultMethodInvokerFactory(
-                          List.of(
-                              new JsonRpcParamsResolver(MAPPER),
-                              new Jackson3ParameterResolver(MAPPER))))
+                      new DefaultMethodInvokerFactory(),
+                      List.of(
+                          new JsonRpcParamsResolver(MAPPER), new Jackson3ParameterResolver(MAPPER)))
                   .create(new PersonService())));
 
   @Test

@@ -24,9 +24,11 @@ import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 class JsonRpcServiceMethodProviderTest {
@@ -57,15 +59,21 @@ class JsonRpcServiceMethodProviderTest {
     }
   }
 
-  private static MethodInvokerFactory createInvokerFactory(ObjectMapper mapper) {
-    return new DefaultMethodInvokerFactory(List.of(new Jackson3ParameterResolver(mapper)));
+  private static MethodInvokerFactory createInvokerFactory() {
+    return new DefaultMethodInvokerFactory();
+  }
+
+  private static List<ParameterResolver<? super JsonNode>> resolvers(ObjectMapper mapper) {
+    return List.of(new Jackson3ParameterResolver(mapper));
   }
 
   @Test
   void shouldDiscoverJsonRpcServiceMethods() {
     try (var ctx = new AnnotationConfigApplicationContext(TestConfig.class)) {
       var mapper = ctx.getBean(ObjectMapper.class);
-      var provider = new JsonRpcServiceMethodProvider(ctx, mapper, createInvokerFactory(mapper));
+      var provider =
+          new JsonRpcServiceMethodProvider(
+              ctx, mapper, createInvokerFactory(), resolvers(mapper), List.of());
       provider.initialize();
 
       List<JsonRpcMethod> methods = provider.getJsonRpcMethodHandlers();
@@ -83,7 +91,9 @@ class JsonRpcServiceMethodProviderTest {
       ctx.refresh();
 
       var mapper = new ObjectMapper();
-      var provider = new JsonRpcServiceMethodProvider(ctx, mapper, createInvokerFactory(mapper));
+      var provider =
+          new JsonRpcServiceMethodProvider(
+              ctx, mapper, createInvokerFactory(), resolvers(mapper), List.of());
       provider.initialize();
 
       assertThat(provider.getJsonRpcMethodHandlers()).isEmpty();
