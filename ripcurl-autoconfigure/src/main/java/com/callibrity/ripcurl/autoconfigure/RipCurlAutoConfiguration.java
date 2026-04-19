@@ -27,7 +27,7 @@ import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
 import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvokerFactory;
@@ -57,25 +57,29 @@ public class RipCurlAutoConfiguration {
       ObjectMapper mapper,
       MethodInvokerFactory invokerFactory,
       List<JsonRpcMethodHandlerCustomizer> customizers) {
-    var handlers = new ArrayList<JsonRpcMethodHandler>();
-    for (String name : beanFactory.getBeanNamesForType(Object.class, false, false)) {
-      var declaredType = beanFactory.getType(name, false);
-      if (declaredType == null) {
-        continue;
-      }
-      var userType = ClassUtils.getUserClass(declaredType);
-      if (MethodUtils.getMethodsListWithAnnotation(userType, JsonRpcMethod.class).isEmpty()) {
-        continue;
-      }
-      var bean = beanFactory.getBean(name);
-      var targetClass = AopUtils.getTargetClass(bean);
-      for (var method :
-          MethodUtils.getMethodsListWithAnnotation(targetClass, JsonRpcMethod.class)) {
-        handlers.add(
-            JsonRpcMethodHandlers.build(bean, method, mapper, invokerFactory, customizers));
-      }
-    }
-    return List.copyOf(handlers);
+    return Arrays.stream(beanFactory.getBeanNamesForType(Object.class, false, false))
+        .filter(name -> hostsJsonRpcMethod(beanFactory, name))
+        .flatMap(
+            name -> {
+              var bean = beanFactory.getBean(name);
+              return MethodUtils.getMethodsListWithAnnotation(
+                      AopUtils.getTargetClass(bean), JsonRpcMethod.class)
+                  .stream()
+                  .map(
+                      method ->
+                          JsonRpcMethodHandlers.build(
+                              bean, method, mapper, invokerFactory, customizers));
+            })
+        .toList();
+  }
+
+  private static boolean hostsJsonRpcMethod(
+      ConfigurableListableBeanFactory beanFactory, String name) {
+    var declaredType = beanFactory.getType(name, false);
+    return declaredType != null
+        && !MethodUtils.getMethodsListWithAnnotation(
+                ClassUtils.getUserClass(declaredType), JsonRpcMethod.class)
+            .isEmpty();
   }
 
   @Bean
