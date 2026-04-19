@@ -19,7 +19,7 @@ Add the starter:
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-    <version>2.6.0</version>
+    <version>2.7.0</version>
 </dependency>
 ```
 
@@ -206,7 +206,7 @@ If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied t
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-jakarta-validation</artifactId>
-    <version>2.6.0</version>
+    <version>2.7.0</version>
 </dependency>
 ```
 
