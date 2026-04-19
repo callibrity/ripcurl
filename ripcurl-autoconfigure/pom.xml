@@ -21,7 +21,7 @@
     <parent>
         <groupId>com.callibrity.ripcurl</groupId>
         <artifactId>ripcurl</artifactId>
-        <version>2.7.0-SNAPSHOT</version>
+        <version>2.8.0-SNAPSHOT</version>
     </parent>
     <artifactId>ripcurl-autoconfigure</artifactId>
     <name>RipCurl - AutoConfiguration</name>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>com.callibrity.ripcurl</groupId>
             <artifactId>ripcurl-core</artifactId>
-            <version>2.7.0-SNAPSHOT</version>
+            <version>2.8.0-SNAPSHOT</version>
         </dependency>
 
         <!--
@@ -43,7 +43,7 @@
         <dependency>
             <groupId>com.callibrity.ripcurl</groupId>
             <artifactId>ripcurl-jakarta-validation</artifactId>
-            <version>2.7.0-SNAPSHOT</version>
+            <version>2.8.0-SNAPSHOT</version>
             <optional>true</optional>
         </dependency>
 
