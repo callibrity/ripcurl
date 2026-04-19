@@ -21,17 +21,18 @@ import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.StringNode;
 
 /**
- * Integration test that runs a full dispatch with both {@link JsonRpcParamsResolver} and the
- * default {@link Jackson3ParameterResolver} registered. Verifies that {@code @JsonRpcParams}
- * parameters are resolved as whole-params deserialization, and the default resolver handles
- * individual field resolution for non-annotated parameters.
+ * Integration test that verifies the built-in resolver chain: {@code JsonRpcParamsResolver} handles
+ * {@code @JsonRpcParams}-annotated parameters (whole-params deserialization) and the built-in
+ * Jackson catch-all handles individual fields for non-annotated parameters. Both resolvers are
+ * baked into {@link JsonRpcMethodHandlers#build} and run for every handler without being registered
+ * as beans.
  */
 class JsonRpcParamsIntegrationTest {
 
@@ -52,15 +53,17 @@ class JsonRpcParamsIntegrationTest {
     }
   }
 
-  private final DefaultJsonRpcDispatcher dispatcher =
-      new DefaultJsonRpcDispatcher(
-          List.of(
-              new DefaultAnnotationJsonRpcMethodProviderFactory(
-                      MAPPER,
-                      new DefaultMethodInvokerFactory(),
-                      List.of(
-                          new JsonRpcParamsResolver(MAPPER), new Jackson3ParameterResolver(MAPPER)))
-                  .create(new PersonService())));
+  private final DefaultJsonRpcDispatcher dispatcher = buildDispatcher();
+
+  private static DefaultJsonRpcDispatcher buildDispatcher() {
+    var bean = new PersonService();
+    var invokerFactory = new DefaultMethodInvokerFactory();
+    var handlers =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), JsonRpcMethod.class).stream()
+            .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, invokerFactory, List.of()))
+            .toList();
+    return new DefaultJsonRpcDispatcher(handlers);
+  }
 
   @Test
   void jsonRpcParamsDeserializesWholeParamsObject() {

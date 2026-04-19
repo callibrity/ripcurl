@@ -21,7 +21,7 @@
     <parent>
         <groupId>com.callibrity.ripcurl</groupId>
         <artifactId>ripcurl</artifactId>
-        <version>2.8.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
     <name>RipCurl - Spring Boot Starter</name>
@@ -30,12 +30,12 @@
         <dependency>
             <groupId>com.callibrity.ripcurl</groupId>
             <artifactId>ripcurl-core</artifactId>
-            <version>2.8.0-SNAPSHOT</version>
+            <version>3.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.callibrity.ripcurl</groupId>
             <artifactId>ripcurl-autoconfigure</artifactId>
-            <version>2.8.0-SNAPSHOT</version>
+            <version>3.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

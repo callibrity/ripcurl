@@ -23,14 +23,15 @@ import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcResult;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
-import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
+import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.NullNode;
@@ -39,11 +40,7 @@ import tools.jackson.databind.node.StringNode;
 class DefaultJsonRpcDispatcherTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private final AnnotationJsonRpcMethodProviderFactory factory =
-      new DefaultAnnotationJsonRpcMethodProviderFactory(
-          MAPPER,
-          new DefaultMethodInvokerFactory(),
-          List.of(new Jackson3ParameterResolver(MAPPER)));
+  private static final MethodInvokerFactory INVOKER_FACTORY = new DefaultMethodInvokerFactory();
 
   public static class HelloService {
     @JsonRpcMethod
@@ -78,9 +75,15 @@ class DefaultJsonRpcDispatcherTest {
     }
   }
 
+  private static List<JsonRpcMethodHandler> handlersFor(Object bean) {
+    return MethodUtils.getMethodsListWithAnnotation(bean.getClass(), JsonRpcMethod.class).stream()
+        .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, INVOKER_FACTORY, List.of()))
+        .toList();
+  }
+
   @Test
   void shouldReturnResultForValidCall() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("123");
     var response =
         service.dispatch(
@@ -97,7 +100,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void subsequentCallsShouldWork() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("123");
     var call =
         new JsonRpcCall(
@@ -110,7 +113,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void shouldAllowNumericIds() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = IntNode.valueOf(123);
     var response =
         service.dispatch(
@@ -125,7 +128,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void shouldReturnNullForNotification() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var response =
         service.dispatch(
             new JsonRpcNotification(
@@ -135,7 +138,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void nullIdShouldReturnResponseNotNotification() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var response =
         service.dispatch(
             new JsonRpcCall(
@@ -149,7 +152,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void voidMethodShouldReturnNullResult() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("v1");
     var response =
         service.dispatch(
@@ -164,7 +167,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void handlerReturningJsonRpcResultShouldPassThrough() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("r1");
     var response =
         service.dispatch(
@@ -205,7 +208,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void missingMethodNameShouldReturnError() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var response =
         service.dispatch(
             new JsonRpcCall(
@@ -220,7 +223,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void wrongIdTypeShouldReturnError() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var response =
         service.dispatch(
             new JsonRpcCall(
@@ -234,7 +237,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void handlerExceptionShouldReturnError() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("e1");
     var response =
         service.dispatch(
@@ -259,7 +262,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void notificationWithInvalidParamsShouldReturnNull() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var params = MAPPER.createObjectNode();
     params.putObject("name"); // object instead of string → ParameterResolutionException
     var response =
@@ -269,7 +272,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void notificationWithRuntimeExceptionShouldReturnNull() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var response =
         service.dispatch(
             new JsonRpcNotification(
@@ -281,7 +284,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void rpcPrefixShouldReturnError() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var response =
         service.dispatch(new JsonRpcCall("2.0", "rpc.discover", null, StringNode.valueOf("123")));
     assertThat(response).isInstanceOf(JsonRpcError.class);
@@ -291,7 +294,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void unexpectedRuntimeExceptionShouldReturnInternalError() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("u1");
     var response =
         service.dispatch(
@@ -303,19 +306,16 @@ class DefaultJsonRpcDispatcherTest {
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INTERNAL_ERROR);
-    // The registry's built-in fallback scrubs the exception message — "something broke" is
-    // implementation detail the client shouldn't see.
     assertThat(error.error().message()).isEqualTo("Internal error");
     assertThat(error.id()).isEqualTo(id);
   }
 
   @Test
   void invalidParamsShouldReturnInvalidParamsError() {
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("p1");
-    // Pass an object where sayHello expects a String "name" param, but give it an object instead
     var params = MAPPER.createObjectNode();
-    params.putObject("name"); // object instead of string
+    params.putObject("name");
     var response = service.dispatch(new JsonRpcCall("2.0", "HelloService.sayHello", params, id));
     assertThat(response).isInstanceOf(JsonRpcError.class);
     var error = (JsonRpcError) response;
@@ -325,11 +325,7 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void handlerThrowingIllegalArgumentExceptionProducesInvalidParams() {
-    // IllegalArgumentException is Java's built-in "bad argument" exception.
-    // IllegalArgumentException-
-    // Translator ships by default and maps it to -32602 Invalid params; the message is preserved
-    // because the developer deliberately authored it for the client.
-    var service = new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())));
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()));
     var id = StringNode.valueOf("ia1");
     var response =
         service.dispatch(
@@ -346,9 +342,6 @@ class DefaultJsonRpcDispatcherTest {
 
   @Test
   void twoArgConstructorUsesTheSuppliedRegistry() {
-    // The two-arg constructor lets callers supply a custom registry — e.g. to register
-    // application-specific translators or replace the defaults wholesale. Verify the dispatcher
-    // actually routes through that registry instead of silently falling back to defaults.
     var customRegistry =
         new DefaultJsonRpcExceptionTranslatorRegistry(
             List.of(
@@ -360,8 +353,7 @@ class DefaultJsonRpcDispatcherTest {
                         -42000, "custom-override");
                   }
                 }));
-    var service =
-        new DefaultJsonRpcDispatcher(List.of(factory.create(new HelloService())), customRegistry);
+    var service = new DefaultJsonRpcDispatcher(handlersFor(new HelloService()), customRegistry);
     var id = StringNode.valueOf("c1");
     var response =
         service.dispatch(

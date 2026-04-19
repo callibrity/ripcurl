@@ -21,7 +21,7 @@
     <parent>
         <groupId>com.callibrity.ripcurl</groupId>
         <artifactId>ripcurl</artifactId>
-        <version>2.8.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>ripcurl-core</artifactId>
     <name>RipCurl - Core</name>
@@ -44,7 +44,6 @@
             <groupId>org.jwcarman.methodical</groupId>
             <artifactId>methodical-jackson3</artifactId>
             <version>${methodical.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

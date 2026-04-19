@@ -38,7 +38,7 @@ import org.springframework.aot.hint.RuntimeHintsRegistrar;
  *   <li><b>Binding hints</b> for the public JSON-RPC message records — these frequently cross a
  *       codec boundary (e.g. when a caller journals {@link JsonRpcMessage} values through an
  *       external store) without appearing in a {@code @JsonRpcMethod} signature, so {@link
- *       JsonRpcServiceBeanAotProcessor} cannot discover them transitively.
+ *       JsonRpcMethodAotProcessor} cannot discover them transitively.
  *   <li><b>Type-parameter resolution hints</b> for the {@link JsonRpcExceptionTranslator} SPI and
  *       each built-in implementation — {@code DefaultJsonRpcExceptionTranslatorRegistry} reads the
  *       generic {@code <E extends Exception>} off the translator class via Specular's {@code

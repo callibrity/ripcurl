@@ -1,5 +1,59 @@
 # Changelog
 
+## 3.0.0
+
+### Breaking changes
+
+- **`@JsonRpcService` class-level annotation removed.** Register handler beans however your app normally does (`@Component`, `@Bean`, or explicit registration); the method-level `@JsonRpcMethod` annotation is the opt-in. Migration: replace `@JsonRpcService` with `@Component` (or leave the bean alone if it's already registered some other way).
+- **`JsonRpcMethod` and `JsonRpcMethodProvider` SPI interfaces removed** along with `AnnotationJsonRpcMethod`, `AnnotationJsonRpcMethodProviderFactory`, `DefaultAnnotationJsonRpcMethodProviderFactory`, and `JsonRpcServiceMethodProvider`. One concrete `JsonRpcMethodHandler` (in `core.annotation`) replaces the entire stack, built pure-Java from a `(bean, @JsonRpcMethod method)` pair via `JsonRpcMethodHandlers.build(...)`.
+- **`DefaultJsonRpcDispatcher` constructor takes `List<JsonRpcMethodHandler>`** instead of `List<JsonRpcMethodProvider>`. The dispatcher builds its name-indexed map eagerly in the constructor (the old `LazyInitializer` indirection and the util class itself are gone).
+- **All per-handler extension moves to a single customizer SPI.** Register a `JsonRpcMethodHandlerCustomizer` bean; its `customize(JsonRpcMethodHandlerConfig)` hook receives the handler's name, method, and bean, and appends either resolvers or interceptors scoped to that handler. The 2.7.0 bean-level autowiring paths — both `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` — are gone. This replaces a footgun (any resolver or interceptor bean on the classpath joining every RipCurl pipeline by structural coincidence) with an intentional, typed SPI.
+- **`RipCurlResolversAutoConfiguration` deleted.** `JsonRpcParamsResolver` and `Jackson3ParameterResolver` are no longer Spring beans. Both are constructed inline by `JsonRpcMethodHandlers.build(...)` — `JsonRpcParamsResolver` at the head of every handler's resolver chain, `Jackson3ParameterResolver` at the tail. Customizer-added resolvers slot between them. Methodical's `@Argument` tail resolver still runs after the Jackson catch-all.
+- **AOT processor renamed** `JsonRpcServiceBeanAotProcessor` → `JsonRpcMethodAotProcessor`. It now keys on "any bean class with at least one `@JsonRpcMethod` method" instead of the `@JsonRpcService` marker. Registered under the same `aot.factories` key; no user action needed for apps that don't reference the processor class directly.
+
+### Changed
+
+- **Jakarta validation integration re-wired as a customizer.** `ripcurl-jakarta-validation` now ships a `JakartaValidationCustomizer` that attaches Methodical's `JakartaValidationInterceptor` to every `@JsonRpcMethod` handler. `RipCurlJakartaValidationAutoConfiguration` registers the customizer bean when the jakarta module and the interceptor bean are both present. The `ConstraintViolationException` → `-32602 Invalid params` translator is unchanged.
+- **Handler discovery no longer instantiates beans without `@JsonRpcMethod` methods.** The scan in `RipCurlAutoConfiguration.jsonRpcMethodHandlers(...)` uses `ConfigurableListableBeanFactory.getBeanNamesForType(Object.class, false, false)` + `getType(name, false)` so lazy / prototype / `FactoryBean` beans that don't host handler methods are never instantiated. Proxies are unwrapped via `AopUtils.getTargetClass(...)` for annotation discovery; invocation still targets the proxy so Spring AOP advice (e.g. `@Transactional`) runs around handler calls.
+
+### Migration
+
+**Handler classes:**
+```diff
+-@JsonRpcService
++@Component
+ public class Calculator {
+     @JsonRpcMethod("subtract")
+     public int subtract(int a, int b) { return a - b; }
+ }
+```
+
+**Custom interceptors:**
+```diff
+-@Bean
+-MethodInterceptor<JsonNode> timingInterceptor() {
+-  return invocation -> { /* ... */ };
+-}
++@Bean
++JsonRpcMethodHandlerCustomizer timingCustomizer() {
++  return config -> config.interceptor(invocation -> { /* ... */ });
++}
+```
+
+**Custom resolvers:**
+```diff
+-@Bean
+-ParameterResolver<JsonNode> myResolver() {
+-  return new MyResolver();
+-}
++@Bean
++JsonRpcMethodHandlerCustomizer myResolverCustomizer() {
++  return config -> config.resolver(new MyResolver());
++}
+```
+
+The customizer can read `config.name()` / `config.method()` / `config.bean()` to decide whether to attach the resolver/interceptor at all — behavior that was impossible via the old bean-list paths.
+
 ## 2.7.0
 
 ### Changed

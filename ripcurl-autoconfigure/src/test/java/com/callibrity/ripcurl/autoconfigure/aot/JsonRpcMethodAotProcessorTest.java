@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import org.junit.jupiter.api.Test;
 import org.springframework.aot.generate.GenerationContext;
 import org.springframework.aot.hint.ExecutableMode;
@@ -32,7 +31,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RegisteredBean;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 
-class JsonRpcServiceBeanAotProcessorTest {
+class JsonRpcMethodAotProcessorTest {
 
   public record GreetingParams(String name, int times) {}
 
@@ -40,7 +39,6 @@ class JsonRpcServiceBeanAotProcessorTest {
 
   public record UnboundParam(String value) {}
 
-  @JsonRpcService
   public static class AnnotatedService {
 
     @JsonRpcMethod("greet")
@@ -75,17 +73,17 @@ class JsonRpcServiceBeanAotProcessorTest {
     }
   }
 
-  private final JsonRpcServiceBeanAotProcessor processor = new JsonRpcServiceBeanAotProcessor();
+  private final JsonRpcMethodAotProcessor processor = new JsonRpcMethodAotProcessor();
 
   @Test
-  void returnsNullContributionForBeansWithoutJsonRpcService() {
+  void returnsNullContributionForBeansWithoutJsonRpcMethods() {
     var bean = registeredBean("unannotated", UnannotatedBean.class);
 
     assertThat(processor.processAheadOfTime(bean)).isNull();
   }
 
   @Test
-  void returnsContributionForJsonRpcServiceBean() {
+  void returnsContributionForBeansWithJsonRpcMethods() {
     var bean = registeredBean("annotated", AnnotatedService.class);
 
     assertThat(processor.processAheadOfTime(bean)).isNotNull();
@@ -138,7 +136,6 @@ class JsonRpcServiceBeanAotProcessorTest {
 
   @Test
   void skipsBindingHintsForVoidReturn() {
-    // ping() returns void; verify no spurious void.class hint was registered.
     var hints = applyContribution(AnnotatedService.class);
 
     assertThat(hints.reflection().typeHints())
@@ -147,7 +144,6 @@ class JsonRpcServiceBeanAotProcessorTest {
 
   @Test
   void skipsBindingHintsForBoxedVoidReturn() {
-    // noop() returns Void; verify no spurious Void.class hint was registered.
     var hints = applyContribution(AnnotatedService.class);
 
     assertThat(hints.reflection().typeHints())
@@ -156,7 +152,6 @@ class JsonRpcServiceBeanAotProcessorTest {
 
   @Test
   void doesNotRegisterBindingHintsForParametersWithoutJsonRpcParams() {
-    // echo(UnboundParam) has a parameter without @JsonRpcParams; verify it gets no binding hint.
     var hints = applyContribution(AnnotatedService.class);
 
     assertThat(hints.reflection().typeHints())

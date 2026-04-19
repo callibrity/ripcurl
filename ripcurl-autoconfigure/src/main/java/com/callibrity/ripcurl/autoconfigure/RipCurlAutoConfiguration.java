@@ -16,8 +16,10 @@
 package com.callibrity.ripcurl.autoconfigure;
 
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
-import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslator;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslatorRegistry;
@@ -25,44 +27,61 @@ import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
 import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
+import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.jwcarman.methodical.MethodInvokerFactory;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import tools.jackson.databind.JsonNode;
+import org.springframework.util.ClassUtils;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfiguration(after = MethodicalAutoConfiguration.class)
 public class RipCurlAutoConfiguration {
 
-  // -------------------------- OTHER METHODS --------------------------
-
+  /**
+   * Discovers every bean in the context with at least one {@code @JsonRpcMethod} method and builds
+   * one {@link JsonRpcMethodHandler} per matching method. Beans are resolved via the
+   * allow-eager-init=false variants of the bean-factory API so lazy / prototype / {@code
+   * FactoryBean} beans without JSON-RPC methods are never instantiated by this scan. Proxies are
+   * unwrapped to find annotations on the declared user class; invocation targets the proxy so
+   * Spring AOP advice still applies.
+   */
   @Bean
-  public JsonRpcServiceMethodProvider jsonRpcServiceMethodProvider(
-      ApplicationContext ctx,
+  public List<JsonRpcMethodHandler> jsonRpcMethodHandlers(
+      ConfigurableListableBeanFactory beanFactory,
       ObjectMapper mapper,
       MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super JsonNode>> resolvers,
-      List<MethodInterceptor<? super JsonNode>> interceptors) {
-    return new JsonRpcServiceMethodProvider(ctx, mapper, invokerFactory, resolvers, interceptors);
-  }
-
-  @Bean
-  public JsonRpcMethodProvider defaultJsonRpcMethodProvider(List<JsonRpcMethod> methods) {
-    return () -> methods;
+      List<JsonRpcMethodHandlerCustomizer> customizers) {
+    var handlers = new ArrayList<JsonRpcMethodHandler>();
+    for (String name : beanFactory.getBeanNamesForType(Object.class, false, false)) {
+      var declaredType = beanFactory.getType(name, false);
+      if (declaredType == null) {
+        continue;
+      }
+      var userType = ClassUtils.getUserClass(declaredType);
+      if (MethodUtils.getMethodsListWithAnnotation(userType, JsonRpcMethod.class).isEmpty()) {
+        continue;
+      }
+      var bean = beanFactory.getBean(name);
+      var targetClass = AopUtils.getTargetClass(bean);
+      for (var method :
+          MethodUtils.getMethodsListWithAnnotation(targetClass, JsonRpcMethod.class)) {
+        handlers.add(
+            JsonRpcMethodHandlers.build(bean, method, mapper, invokerFactory, customizers));
+      }
+    }
+    return List.copyOf(handlers);
   }
 
   @Bean
   public JsonRpcDispatcher jsonRpcDispatcher(
-      List<JsonRpcMethodProvider> providers, JsonRpcExceptionTranslatorRegistry translators) {
-    return new DefaultJsonRpcDispatcher(providers, translators);
+      List<JsonRpcMethodHandler> handlers, JsonRpcExceptionTranslatorRegistry translators) {
+    return new DefaultJsonRpcDispatcher(handlers, translators);
   }
 
   @Bean
@@ -88,15 +107,5 @@ public class RipCurlAutoConfiguration {
   @ConditionalOnMissingBean
   public ParameterResolutionExceptionTranslator parameterResolutionExceptionTranslator() {
     return new ParameterResolutionExceptionTranslator();
-  }
-
-  @Bean
-  public AnnotationJsonRpcMethodProviderFactory annotationJsonRpcMethodHandlerProviderFactory(
-      ObjectMapper objectMapper,
-      MethodInvokerFactory invokerFactory,
-      List<ParameterResolver<? super JsonNode>> resolvers,
-      List<MethodInterceptor<? super JsonNode>> interceptors) {
-    return new DefaultAnnotationJsonRpcMethodProviderFactory(
-        objectMapper, invokerFactory, resolvers, interceptors);
   }
 }

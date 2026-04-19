@@ -18,15 +18,16 @@ package com.callibrity.ripcurl.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import java.util.List;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.NullNode;
@@ -61,12 +62,13 @@ class JsonRpcComplianceTest {
 
   @BeforeEach
   void setUp() {
-    var factory =
-        new DefaultAnnotationJsonRpcMethodProviderFactory(
-            MAPPER,
-            new DefaultMethodInvokerFactory(),
-            List.of(new Jackson3ParameterResolver(MAPPER)));
-    dispatcher = new DefaultJsonRpcDispatcher(List.of(factory.create(new TestService())));
+    var bean = new TestService();
+    var invokerFactory = new DefaultMethodInvokerFactory();
+    List<JsonRpcMethodHandler> handlers =
+        MethodUtils.getMethodsListWithAnnotation(bean.getClass(), JsonRpcMethod.class).stream()
+            .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, invokerFactory, List.of()))
+            .toList();
+    dispatcher = new DefaultJsonRpcDispatcher(handlers);
   }
 
   // --- Protocol constants ---

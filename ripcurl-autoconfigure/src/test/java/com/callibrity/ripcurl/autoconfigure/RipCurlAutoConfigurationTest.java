@@ -17,24 +17,26 @@ package com.callibrity.ripcurl.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcErrorDetail;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
-import com.callibrity.ripcurl.core.annotation.AnnotationJsonRpcMethodProviderFactory;
+import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
-import com.callibrity.ripcurl.core.annotation.JsonRpcParamsResolver;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslator;
 import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
 import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.autoconfigure.Jackson3AutoConfiguration;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.StringNode;
 
 class RipCurlAutoConfigurationTest {
 
@@ -44,11 +46,9 @@ class RipCurlAutoConfigurationTest {
               AutoConfigurations.of(
                   JacksonAutoConfiguration.class,
                   Jackson3AutoConfiguration.class,
-                  RipCurlResolversAutoConfiguration.class,
                   MethodicalAutoConfiguration.class,
                   RipCurlAutoConfiguration.class));
 
-  @JsonRpcService
   public static class TestService {
     @JsonRpcMethod("test.hello")
     public String hello(String name) {
@@ -57,46 +57,70 @@ class RipCurlAutoConfigurationTest {
   }
 
   @Test
-  void shouldCreateAllBeans() {
+  void shouldCreateCoreBeans() {
     runner
         .withBean(TestService.class)
         .run(
             ctx -> {
               assertThat(ctx).hasSingleBean(JsonRpcDispatcher.class);
-              assertThat(ctx).hasSingleBean(JsonRpcServiceMethodProvider.class);
-              assertThat(ctx).hasSingleBean(AnnotationJsonRpcMethodProviderFactory.class);
-              assertThat(ctx).hasSingleBean(JsonRpcParamsResolver.class);
-              assertThat(ctx).hasBean("defaultJsonRpcMethodProvider");
+              assertThat(ctx.getBean("jsonRpcMethodHandlers"))
+                  .asInstanceOf(
+                      org.assertj.core.api.InstanceOfAssertFactories.list(
+                          JsonRpcMethodHandler.class))
+                  .hasSize(1);
             });
   }
 
   @Test
-  void dispatcherShouldDiscoverAnnotatedMethods() {
+  void dispatcherShouldDiscoverAnnotatedMethodsOnPlainBeans() {
     runner
         .withBean(TestService.class)
         .run(
             ctx -> {
               var dispatcher = ctx.getBean(JsonRpcDispatcher.class);
-              assertThat(dispatcher).isNotNull();
-
-              var providers = ctx.getBeansOfType(JsonRpcMethodProvider.class);
-              assertThat(providers).isNotEmpty();
+              var mapper = ctx.getBean(ObjectMapper.class);
+              var params = mapper.createObjectNode().put("name", "World");
+              var response =
+                  dispatcher.dispatch(
+                      new JsonRpcCall("2.0", "test.hello", params, StringNode.valueOf("1")));
+              assertThat(response).isInstanceOf(JsonRpcResult.class);
+              assertThat(((JsonRpcResult) response).result().asString()).isEqualTo("Hello, World!");
             });
   }
 
   @Test
-  void shouldWorkWithNoJsonRpcServices() {
+  void shouldWorkWithNoJsonRpcMethodBeans() {
     runner.run(
         ctx -> {
           assertThat(ctx).hasSingleBean(JsonRpcDispatcher.class);
-          assertThat(ctx).hasSingleBean(JsonRpcServiceMethodProvider.class);
+          assertThat(ctx.getBean("jsonRpcMethodHandlers"))
+              .asInstanceOf(
+                  org.assertj.core.api.InstanceOfAssertFactories.list(JsonRpcMethodHandler.class))
+              .isEmpty();
         });
   }
 
   @Test
+  void handlerCustomizerRunsOncePerHandlerWithCorrectMetadata() {
+    // Registers a customizer that captures the config handed to it. Asserts the name/method/bean
+    // triple reflects the TestService's single handler. This is the only place the customizer SPI
+    // is exercised through the full Spring wiring.
+    runner
+        .withBean(TestService.class)
+        .withUserConfiguration(CapturingCustomizerConfig.class)
+        .run(
+            ctx -> {
+              var captor = ctx.getBean(CapturingCustomizerConfig.Captor.class);
+              assertThat(captor.names).containsExactly("test.hello");
+              assertThat(captor.beans).singleElement().isInstanceOf(TestService.class);
+              assertThat(captor.methods)
+                  .singleElement()
+                  .satisfies(m -> assertThat(m.getName()).isEqualTo("hello"));
+            });
+  }
+
+  @Test
   void shouldRegisterAllBuiltInExceptionTranslatorBeans() {
-    // The autoconfigure module exposes each built-in translator as a @ConditionalOnMissingBean
-    // so apps can override individually. Verify they all show up by default.
     runner.run(
         ctx -> {
           assertThat(ctx).hasSingleBean(DefaultJsonRpcExceptionTranslator.class);
@@ -108,9 +132,6 @@ class RipCurlAutoConfigurationTest {
 
   @Test
   void registryShouldRouteExceptionsThroughRegisteredTranslators() {
-    // End-to-end verification that translator beans flow into the registry and the registry
-    // then dispatches exception -> JsonRpcErrorDetail correctly. Without this, a broken wiring
-    // would pass the existence-check above but still route nothing.
     runner.run(
         ctx -> {
           var registry = ctx.getBean(JsonRpcExceptionTranslatorRegistry.class);
@@ -128,9 +149,6 @@ class RipCurlAutoConfigurationTest {
 
   @Test
   void userCanOverrideAnIndividualBuiltInTranslator() {
-    // @ConditionalOnMissingBean on each translator means a user-registered bean of the same
-    // type replaces the built-in. Verify that's actually wired correctly — a missing
-    // annotation would let both beans register and the registry would reject on duplicate.
     runner
         .withUserConfiguration(OverrideIllegalArgumentConfig.class)
         .run(
@@ -146,16 +164,11 @@ class RipCurlAutoConfigurationTest {
 
   @Test
   void jakartaValidationTranslatorFlowsIntoTheRegistryWhenAutoConfigIsLoaded() {
-    // When both the core autoconfig and the jakarta-validation autoconfig are present, the
-    // ConstraintViolationExceptionTranslator bean must be picked up by the registry. Spring
-    // processes all autoconfigs before bean instantiation, so order-of-autoconfig shouldn't
-    // matter — this test proves that contract instead of relying on it.
     new ApplicationContextRunner()
         .withConfiguration(
             AutoConfigurations.of(
                 JacksonAutoConfiguration.class,
                 Jackson3AutoConfiguration.class,
-                RipCurlResolversAutoConfiguration.class,
                 MethodicalAutoConfiguration.class,
                 RipCurlAutoConfiguration.class,
                 RipCurlJakartaValidationAutoConfiguration.class))
@@ -165,8 +178,6 @@ class RipCurlAutoConfigurationTest {
               var violation =
                   new jakarta.validation.ConstraintViolationException(java.util.Set.of());
               JsonRpcErrorDetail detail = registry.translate(violation);
-              // ConstraintViolationExceptionTranslator wins over the built-in fallback — the
-              // -32602 code proves the jakarta translator bean actually reached the registry.
               assertThat(detail.code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
               assertThat(detail.message()).isEqualTo("Invalid params");
             });
@@ -180,6 +191,32 @@ class RipCurlAutoConfigurationTest {
             ctx ->
                 assertThat(ctx.getBean(JsonRpcExceptionTranslatorRegistry.class))
                     .isInstanceOf(OverrideRegistryConfig.EmptyRegistry.class));
+  }
+
+  @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+  static class CapturingCustomizerConfig {
+
+    @org.springframework.context.annotation.Bean
+    Captor captor() {
+      return new Captor();
+    }
+
+    @org.springframework.context.annotation.Bean
+    com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer capturingCustomizer(
+        ObjectProvider<Captor> captorProvider) {
+      return config -> {
+        var captor = captorProvider.getObject();
+        captor.names.add(config.name());
+        captor.methods.add(config.method());
+        captor.beans.add(config.bean());
+      };
+    }
+
+    static class Captor {
+      final java.util.List<String> names = new java.util.ArrayList<>();
+      final java.util.List<java.lang.reflect.Method> methods = new java.util.ArrayList<>();
+      final java.util.List<Object> beans = new java.util.ArrayList<>();
+    }
   }
 
   @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)

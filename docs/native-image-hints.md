@@ -11,9 +11,10 @@ Reference companions in this family: `mocapi/docs/native-image-hints.md`, `subst
 Running the cowork-connector-example under the tracing agent surfaced these ripcurl types:
 
 - **Core message types** (5) — `JsonRpcMessage`, `JsonRpcResponse`, `JsonRpcResult`, `JsonRpcError`, `JsonRpcErrorDetail`
-- **Annotations** (2) — `@JsonRpcMethod`, `@JsonRpcService`
-- **SPI ifaces + default impls** (7) — `JsonRpcDispatcher` + `DefaultJsonRpcDispatcher`, `JsonRpcMethodProvider`, `JsonRpcServiceMethodProvider`, `AnnotationJsonRpcMethodProviderFactory` + `DefaultAnnotationJsonRpcMethodProviderFactory`, `JsonRpcParamsResolver`
-- **Auto-configs** (2) — `RipCurlAutoConfiguration`, `RipCurlResolversAutoConfiguration`
+- **Annotations** (1) — `@JsonRpcMethod`
+- **Public handler types** (4) — `JsonRpcDispatcher` + `DefaultJsonRpcDispatcher`, `JsonRpcMethodHandler`, `JsonRpcParamsResolver`
+- **Customizer SPI** (2) — `JsonRpcMethodHandlerConfig`, `JsonRpcMethodHandlerCustomizer`
+- **Auto-configs** (1) — `RipCurlAutoConfiguration`
 
 ## How coverage works
 
@@ -21,15 +22,15 @@ Two contributions in `ripcurl-autoconfigure/src/main/resources/META-INF/spring/a
 
 ```
 org.springframework.beans.factory.aot.BeanRegistrationAotProcessor=\
-com.callibrity.ripcurl.autoconfigure.aot.JsonRpcServiceBeanAotProcessor
+com.callibrity.ripcurl.autoconfigure.aot.JsonRpcMethodAotProcessor
 
 org.springframework.aot.hint.RuntimeHintsRegistrar=\
 com.callibrity.ripcurl.autoconfigure.aot.RipCurlRuntimeHints
 ```
 
-### `JsonRpcServiceBeanAotProcessor`
+### `JsonRpcMethodAotProcessor`
 
-For every Spring bean annotated with `@JsonRpcService`, walks its declared methods. On each `@JsonRpcMethod`:
+For every bean whose declared class hosts at least one `@JsonRpcMethod`-annotated method, walks those methods. On each `@JsonRpcMethod`:
 
 - `ExecutableMode.INVOKE` hint on the method itself.
 - `BindingReflectionHints` on every parameter type annotated with `@JsonRpcParams`.
@@ -45,7 +46,7 @@ Explicitly registers `BindingReflectionHints` on the eight public message types 
 
 - `JsonRpcMessage`, `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcCall`, `JsonRpcNotification`, `JsonRpcResult`, `JsonRpcError`, `JsonRpcErrorDetail`
 
-**Why explicit instead of a package scan:** these types cross a codec boundary without appearing in `@JsonRpcMethod` signatures — e.g., when a consumer journals raw `JsonRpcMessage` values through an external store, or dispatches envelopes manually rather than through a `@JsonRpcService` bean. The list is short and stable, so enumeration is clearer than a scan. Any new message types added to the hierarchy must be registered here.
+**Why explicit instead of a package scan:** these types cross a codec boundary without appearing in `@JsonRpcMethod` signatures — e.g., when a consumer journals raw `JsonRpcMessage` values through an external store, or dispatches envelopes manually rather than through the built-in dispatcher. The list is short and stable, so enumeration is clearer than a scan. Any new message types added to the hierarchy must be registered here.
 
 ### Exception translator SPI (2.6.0+)
 
@@ -66,13 +67,13 @@ User-written translators registered as Spring beans are covered automatically by
 
 ### What Spring AOT handles (no explicit hints needed)
 
-- `RipCurlAutoConfiguration` + `RipCurlResolversAutoConfiguration` — Spring Boot AOT generates the binding code.
-- `DefaultJsonRpcDispatcher`, `JsonRpcServiceMethodProvider`, `DefaultAnnotationJsonRpcMethodProviderFactory`, `JsonRpcParamsResolver` — Spring beans, replaced by generated factory code in native.
-- `@JsonRpcMethod` / `@JsonRpcService` annotation discovery — Spring's merged-annotation machinery is pre-computed at AOT time.
+- `RipCurlAutoConfiguration` — Spring Boot AOT generates the binding code.
+- `DefaultJsonRpcDispatcher`, `JsonRpcParamsResolver`, `JsonRpcMethodHandler` — Spring beans or holders of Spring-created values, replaced by generated factory code in native.
+- `@JsonRpcMethod` annotation discovery — Spring's merged-annotation machinery is pre-computed at AOT time.
 
 ## Tests
 
-Any added test for this area should mirror mocapi's `MocapiRuntimeHintsTest` pattern: build a `RuntimeHints`, feed it through `RipCurlRuntimeHints`, and assert `TypeReference` coverage on each of the eight message types. For the processor, build a `RegisteredBean` around a `@JsonRpcService` fixture and assert `INVOKE` + binding hints land on the expected methods/params/returns.
+Any added test for this area should mirror mocapi's `MocapiRuntimeHintsTest` pattern: build a `RuntimeHints`, feed it through `RipCurlRuntimeHints`, and assert `TypeReference` coverage on each of the eight message types. For the processor, build a `RegisteredBean` around a fixture class that declares `@JsonRpcMethod` methods and assert `INVOKE` + binding hints land on the expected methods/params/returns.
 
 ## Verification
 
@@ -82,4 +83,4 @@ The cowork-connector-example at `~/IdeaProjects/cowork-connector-example` is the
 2. `mvn -Pnative spring-boot:build-image -DBP_NATIVE_IMAGE=true`.
 3. Exercise the MCP protocol end-to-end: `initialize`, `tools/list`, `tools/call`, `prompts/get`, and at least one error path (unknown tool name returns JSON-RPC `-32602`).
 
-If any call errors with `MissingReflectionRegistrationError` on a `JsonRpc*` type, extend `RipCurlRuntimeHints` to cover it. If the error is on a consumer's handler signature, that points to a `JsonRpcServiceBeanAotProcessor` bug — likely a missing `@JsonRpcParams` annotation on the offending parameter.
+If any call errors with `MissingReflectionRegistrationError` on a `JsonRpc*` type, extend `RipCurlRuntimeHints` to cover it. If the error is on a consumer's handler signature, that points to a `JsonRpcMethodAotProcessor` bug — likely a missing `@JsonRpcParams` annotation on the offending parameter.

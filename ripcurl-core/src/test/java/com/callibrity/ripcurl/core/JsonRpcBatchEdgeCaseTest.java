@@ -18,17 +18,18 @@ package com.callibrity.ripcurl.core;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.callibrity.ripcurl.core.annotation.DefaultAnnotationJsonRpcMethodProviderFactory;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcDispatcher;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 
@@ -91,12 +92,12 @@ class JsonRpcBatchEdgeCaseTest {
   }
 
   private JsonRpcDispatcher createDispatcher(Object service) {
-    var factory =
-        new DefaultAnnotationJsonRpcMethodProviderFactory(
-            MAPPER,
-            new DefaultMethodInvokerFactory(),
-            List.of(new Jackson3ParameterResolver(MAPPER)));
-    return new DefaultJsonRpcDispatcher(List.of(factory.create(service)));
+    var invokerFactory = new DefaultMethodInvokerFactory();
+    List<JsonRpcMethodHandler> handlers =
+        MethodUtils.getMethodsListWithAnnotation(service.getClass(), JsonRpcMethod.class).stream()
+            .map(m -> JsonRpcMethodHandlers.build(service, m, MAPPER, invokerFactory, List.of()))
+            .toList();
+    return new DefaultJsonRpcDispatcher(handlers);
   }
 
   public static class BlockingService {

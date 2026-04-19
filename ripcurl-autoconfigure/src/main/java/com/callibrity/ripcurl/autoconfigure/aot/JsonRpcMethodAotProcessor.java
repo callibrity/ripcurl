@@ -17,44 +17,43 @@ package com.callibrity.ripcurl.autoconfigure.aot;
 
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcParams;
-import com.callibrity.ripcurl.core.annotation.JsonRpcService;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.beans.factory.aot.BeanRegistrationAotContribution;
 import org.springframework.beans.factory.aot.BeanRegistrationAotProcessor;
 import org.springframework.beans.factory.support.RegisteredBean;
+import org.springframework.util.ClassUtils;
 
 /**
- * Registers AOT reflection hints for every {@link JsonRpcMethod}-annotated method on a {@link
- * JsonRpcService}-annotated bean: an {@link ExecutableMode#INVOKE} hint on the method itself so the
- * runtime dispatcher can invoke it reflectively, plus Jackson binding hints on each {@link
- * JsonRpcParams} parameter type and on the method's return type.
+ * Registers AOT reflection hints for every {@link JsonRpcMethod}-annotated method on any bean. For
+ * each annotated method: an {@link ExecutableMode#INVOKE} hint on the method itself so the runtime
+ * dispatcher can invoke it reflectively, plus Jackson binding hints on each {@link JsonRpcParams}
+ * parameter type and on the method's return type (skipped for {@code void} / {@code Void}).
  *
- * <p>Non-{@code JsonRpcService} beans are ignored. No-op for non-native (JIT) builds.
+ * <p>Beans without any {@code @JsonRpcMethod} methods are ignored. No-op for non-native (JIT)
+ * builds.
  */
-public class JsonRpcServiceBeanAotProcessor implements BeanRegistrationAotProcessor {
+public class JsonRpcMethodAotProcessor implements BeanRegistrationAotProcessor {
 
   private static final BindingReflectionHintsRegistrar BINDING =
       new BindingReflectionHintsRegistrar();
 
   @Override
   public BeanRegistrationAotContribution processAheadOfTime(RegisteredBean registeredBean) {
-    Class<?> beanClass = registeredBean.getBeanClass();
-    if (!beanClass.isAnnotationPresent(JsonRpcService.class)) {
+    Class<?> userClass = ClassUtils.getUserClass(registeredBean.getBeanClass());
+    if (MethodUtils.getMethodsListWithAnnotation(userClass, JsonRpcMethod.class).isEmpty()) {
       return null;
     }
     return (generationContext, beanRegistrationCode) ->
-        registerHints(generationContext.getRuntimeHints(), beanClass);
+        registerHints(generationContext.getRuntimeHints(), userClass);
   }
 
   private static void registerHints(RuntimeHints hints, Class<?> beanClass) {
-    for (Method method : beanClass.getDeclaredMethods()) {
-      if (!method.isAnnotationPresent(JsonRpcMethod.class)) {
-        continue;
-      }
+    for (Method method : MethodUtils.getMethodsListWithAnnotation(beanClass, JsonRpcMethod.class)) {
       hints.reflection().registerMethod(method, ExecutableMode.INVOKE);
       for (Parameter parameter : method.getParameters()) {
         if (parameter.isAnnotationPresent(JsonRpcParams.class)) {

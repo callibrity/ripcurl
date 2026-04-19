@@ -25,11 +25,9 @@ import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
 import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResponse;
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethod;
-import com.callibrity.ripcurl.core.spi.JsonRpcMethodProvider;
-import com.callibrity.ripcurl.core.util.LazyInitializer;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,7 +41,7 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultJsonRpcDispatcher.class);
 
-  private final LazyInitializer<Map<String, JsonRpcMethod>> methods;
+  private final Map<String, JsonRpcMethodHandler> methods;
   private final JsonRpcExceptionTranslatorRegistry translators;
 
   /**
@@ -53,9 +51,9 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
    * registry's own built-in fallback handles any uncaught exception as {@code -32603 Internal
    * error}. Suitable when no custom exception-to-JSON-RPC-error mapping is needed.
    */
-  public DefaultJsonRpcDispatcher(List<JsonRpcMethodProvider> providers) {
+  public DefaultJsonRpcDispatcher(List<JsonRpcMethodHandler> handlers) {
     this(
-        providers,
+        handlers,
         new DefaultJsonRpcExceptionTranslatorRegistry(
             List.of(
                 new DefaultJsonRpcExceptionTranslator(),
@@ -64,18 +62,11 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
   }
 
   public DefaultJsonRpcDispatcher(
-      List<JsonRpcMethodProvider> providers, JsonRpcExceptionTranslatorRegistry translators) {
+      List<JsonRpcMethodHandler> handlers, JsonRpcExceptionTranslatorRegistry translators) {
     this.translators = Objects.requireNonNull(translators, "translators");
     this.methods =
-        LazyInitializer.of(
-            () -> {
-              var methodMap =
-                  providers.stream()
-                      .flatMap(provider -> provider.getJsonRpcMethodHandlers().stream())
-                      .collect(Collectors.toMap(JsonRpcMethod::methodName, m -> m));
-              methodMap.keySet().forEach(name -> log.info("Registered JSON-RPC method: {}", name));
-              return methodMap;
-            });
+        handlers.stream().collect(Collectors.toUnmodifiableMap(JsonRpcMethodHandler::name, h -> h));
+    this.methods.keySet().forEach(name -> log.info("Registered JSON-RPC method: {}", name));
   }
 
   @Override
@@ -90,7 +81,7 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
     try {
       validate(call);
       var method =
-          ofNullable(methods.get().get(call.method()))
+          ofNullable(methods.get(call.method()))
               .orElseThrow(
                   () ->
                       new JsonRpcException(
@@ -106,7 +97,7 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
   private JsonRpcResponse dispatchNotification(JsonRpcNotification notification) {
     try {
       validate(notification);
-      var method = methods.get().get(notification.method());
+      var method = methods.get(notification.method());
       if (method != null) {
         method.call(notification);
       }

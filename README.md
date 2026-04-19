@@ -35,10 +35,10 @@ And the Jackson 3 resolver (included with Spring Boot 4):
 
 ## Defining Methods
 
-Annotate a bean with `@JsonRpcService` and its methods with `@JsonRpcMethod`:
+Register the handler bean however your app normally does (`@Component`, `@Bean`, etc.) and annotate each handler method with `@JsonRpcMethod`:
 
 ```java
-@JsonRpcService
+@Component
 public class MathService {
 
     @JsonRpcMethod("subtract")
@@ -53,7 +53,43 @@ public class MathService {
 }
 ```
 
-RipCurl discovers all `@JsonRpcService` beans and registers their `@JsonRpcMethod` methods with the dispatcher. Parameters are resolved by name from the JSON-RPC `params` object (or by position from a JSON array).
+RipCurl scans every bean in the context for `@JsonRpcMethod` methods and registers them with the dispatcher. Parameters are resolved by name from the JSON-RPC `params` object (or by position from a JSON array).
+
+## Customizing Handlers
+
+To attach behavior — metrics, auth, logging, custom parameter resolution, etc. — to every `@JsonRpcMethod` handler, register a `JsonRpcMethodHandlerCustomizer` bean. The customizer receives a config describing the handler (JSON-RPC method name, target `Method`, target bean) and appends either a `MethodInterceptor` or a `ParameterResolver` scoped to that specific handler.
+
+**Interceptor example** — adding a per-handler metrics timer:
+
+```java
+@Bean
+JsonRpcMethodHandlerCustomizer timingCustomizer(MeterRegistry registry) {
+    return config -> {
+        var timer = registry.timer("ripcurl.handler", "method", config.name());
+        config.interceptor(invocation -> {
+            var sample = Timer.start();
+            try {
+                return invocation.proceed();
+            } finally {
+                sample.stop(timer);
+            }
+        });
+    };
+}
+```
+
+**Resolver example** — injecting a request-scoped `TenantContext`:
+
+```java
+@Bean
+JsonRpcMethodHandlerCustomizer tenantContextCustomizer() {
+    return config -> config.resolver(new TenantContextParameterResolver());
+}
+```
+
+Customizer-contributed resolvers slot between two built-in resolvers that RipCurl always applies: `JsonRpcParamsResolver` runs first (handling `@JsonRpcParams` parameters), then customizer resolvers in bean order (honoring `@Order`), then `Jackson3ParameterResolver` as the name/index catch-all. Methodical's `@Argument` tail runs last.
+
+Customizers are the only extension path in 3.0.0. The 2.x bean-level autowiring of `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` is gone — any such beans on the classpath no longer contribute to RipCurl's pipeline.
 
 ## Message Types
 
