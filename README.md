@@ -89,7 +89,7 @@ JsonRpcMethodHandlerCustomizer tenantContextCustomizer() {
 
 Customizer-contributed resolvers slot between two built-in resolvers that RipCurl always applies: `JsonRpcParamsResolver` runs first (handling `@JsonRpcParams` parameters), then customizer resolvers in bean order (honoring `@Order`), then `Jackson3ParameterResolver` as the name/index catch-all. Methodical's `@Argument` tail runs last.
 
-Customizers are the only extension path in 3.0.0. The 2.x bean-level autowiring of `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` is gone — any such beans on the classpath no longer contribute to RipCurl's pipeline.
+Customizers are the only extension path in 2.8.0. The 2.7.0 bean-level autowiring of `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` is gone — any such beans on the classpath no longer contribute to RipCurl's pipeline.
 
 ## Message Types
 

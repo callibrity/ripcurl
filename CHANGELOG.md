@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0
+## 2.8.0
 
 ### Breaking changes
 
@@ -10,6 +10,7 @@
 - **All per-handler extension moves to a single customizer SPI.** Register a `JsonRpcMethodHandlerCustomizer` bean; its `customize(JsonRpcMethodHandlerConfig)` hook receives the handler's name, method, and bean, and appends either resolvers or interceptors scoped to that handler. The 2.7.0 bean-level autowiring paths — both `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` — are gone. This replaces a footgun (any resolver or interceptor bean on the classpath joining every RipCurl pipeline by structural coincidence) with an intentional, typed SPI.
 - **`RipCurlResolversAutoConfiguration` deleted.** `JsonRpcParamsResolver` and `Jackson3ParameterResolver` are no longer Spring beans. Both are constructed inline by `JsonRpcMethodHandlers.build(...)` — `JsonRpcParamsResolver` at the head of every handler's resolver chain, `Jackson3ParameterResolver` at the tail. Customizer-added resolvers slot between them. Methodical's `@Argument` tail resolver still runs after the Jackson catch-all.
 - **AOT processor renamed** `JsonRpcServiceBeanAotProcessor` → `JsonRpcMethodAotProcessor`. It now keys on "any bean class with at least one `@JsonRpcMethod` method" instead of the `@JsonRpcService` marker. Registered under the same `aot.factories` key; no user action needed for apps that don't reference the processor class directly.
+- **Bumped methodical `0.6.0` → `0.7.0`.** Methodical's `ParameterResolver` contract changed from `supports(ParameterInfo)` + `resolve(ParameterInfo, A)` to a single `bind(ParameterInfo) → Optional<Binding<A>>`. The returned `Binding` is per-parameter and can cache derived artifacts (e.g., `ObjectReader` for a known target type) for reuse across every dispatch. RipCurl's `JsonRpcParamsResolver` implements the new shape and caches the `ObjectReader` in the `Binding`, eliminating the per-call `mapper.readerFor(type)` allocation. Users who write custom resolvers against the customizer SPI must migrate to the new `bind`-based shape.
 
 ### Changed
 

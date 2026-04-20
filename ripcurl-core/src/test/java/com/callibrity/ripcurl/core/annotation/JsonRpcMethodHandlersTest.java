@@ -107,20 +107,15 @@ class JsonRpcMethodHandlersTest {
     JsonRpcMethodHandlerCustomizer customizer =
         config ->
             config.resolver(
-                new org.jwcarman.methodical.param.ParameterResolver<
-                    tools.jackson.databind.JsonNode>() {
-                  @Override
-                  public boolean supports(org.jwcarman.methodical.param.ParameterInfo info) {
-                    return info.parameter().getType().equals(String.class);
+                info -> {
+                  if (!info.accepts(String.class)) {
+                    return java.util.Optional.empty();
                   }
-
-                  @Override
-                  public Object resolve(
-                      org.jwcarman.methodical.param.ParameterInfo info,
-                      tools.jackson.databind.JsonNode params) {
-                    captured.add("resolver-hit");
-                    return "resolved-by-customizer";
-                  }
+                  return java.util.Optional.of(
+                      params -> {
+                        captured.add("resolver-hit");
+                        return "resolved-by-customizer";
+                      });
                 });
 
     var handler =

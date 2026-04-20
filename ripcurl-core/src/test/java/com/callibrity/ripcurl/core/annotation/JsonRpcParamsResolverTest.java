@@ -23,6 +23,7 @@ import java.lang.reflect.Parameter;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.ParameterResolutionException;
 import org.jwcarman.methodical.param.ParameterInfo;
+import org.jwcarman.methodical.param.ParameterResolver;
 import org.jwcarman.specular.TypeRef;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -51,28 +52,25 @@ class JsonRpcParamsResolverTest {
   }
 
   @Test
-  void supportsAnnotatedParameter() throws Exception {
+  void bindsAnnotatedParameter() throws Exception {
     var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("pointMethod", 0);
 
-    assertThat(resolver.supports(info)).isTrue();
+    assertThat(resolver.bind(paramInfo("pointMethod", 0))).isPresent();
   }
 
   @Test
-  void doesNotSupportUnannotatedParameter() throws Exception {
+  void doesNotBindUnannotatedParameter() throws Exception {
     var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("unannotatedMethod", 0);
 
-    assertThat(resolver.supports(info)).isFalse();
+    assertThat(resolver.bind(paramInfo("unannotatedMethod", 0))).isEmpty();
   }
 
   @Test
   void deserializesParamsIntoRecord() throws Exception {
-    var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("pointMethod", 0);
+    var binding = binding("pointMethod", 0);
     JsonNode params = MAPPER.readTree("{\"x\":1,\"y\":2}");
 
-    Object result = resolver.resolve(info, params);
+    Object result = binding.resolve(params);
 
     assertThat(result).isInstanceOf(Point.class);
     assertThat((Point) result).isEqualTo(new Point(1, 2));
@@ -80,11 +78,10 @@ class JsonRpcParamsResolverTest {
 
   @Test
   void deserializesComplexRecord() throws Exception {
-    var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("greetingMethod", 0);
+    var binding = binding("greetingMethod", 0);
     JsonNode params = MAPPER.readTree("{\"message\":\"hello\",\"count\":3}");
 
-    Object result = resolver.resolve(info, params);
+    Object result = binding.resolve(params);
 
     assertThat(result).isInstanceOf(Greeting.class);
     assertThat((Greeting) result).isEqualTo(new Greeting("hello", 3));
@@ -92,29 +89,31 @@ class JsonRpcParamsResolverTest {
 
   @Test
   void nullParamsReturnsNull() throws Exception {
-    var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("pointMethod", 0);
+    var binding = binding("pointMethod", 0);
 
-    assertThat(resolver.resolve(info, null)).isNull();
+    assertThat(binding.resolve(null)).isNull();
   }
 
   @Test
   void nullNodeParamsReturnsNull() throws Exception {
-    var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("pointMethod", 0);
+    var binding = binding("pointMethod", 0);
 
-    assertThat(resolver.resolve(info, NullNode.getInstance())).isNull();
+    assertThat(binding.resolve(NullNode.getInstance())).isNull();
   }
 
   @Test
   void invalidShapeThrowsParameterResolutionException() throws Exception {
-    var resolver = new JsonRpcParamsResolver(MAPPER);
-    ParameterInfo info = paramInfo("pointMethod", 0);
+    var binding = binding("pointMethod", 0);
     JsonNode params = MAPPER.readTree("{\"x\":\"not-a-number\",\"y\":2}");
 
-    assertThatThrownBy(() -> resolver.resolve(info, params))
+    assertThatThrownBy(() -> binding.resolve(params))
         .isInstanceOf(ParameterResolutionException.class)
         .hasMessageContaining("@JsonRpcParams");
+  }
+
+  private static ParameterResolver.Binding<JsonNode> binding(String methodName, int index)
+      throws Exception {
+    return new JsonRpcParamsResolver(MAPPER).bind(paramInfo(methodName, index)).orElseThrow();
   }
 
   private static ParameterInfo paramInfo(String methodName, int index) throws Exception {
