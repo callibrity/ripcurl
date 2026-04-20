@@ -16,7 +16,11 @@
 package com.callibrity.ripcurl.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerConfig;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslatorRegistry;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
@@ -47,6 +51,22 @@ class RipCurlObservationAutoConfigurationTest {
             ctx ->
                 assertThat(ctx.getBeansOfType(JsonRpcMethodHandlerCustomizer.class))
                     .containsOnlyKeys("jsonRpcObservationCustomizer"));
+  }
+
+  @Test
+  void customizer_attaches_a_JsonRpcObservationInterceptor_to_each_handler() {
+    // Invoke the customizer directly with a mock config and assert it handed back a
+    // JsonRpcObservationInterceptor — proves the lambda body actually wires the interceptor
+    // (without this, the bean registers but its body never runs under test).
+    runner
+        .withUserConfiguration(RequiredBeansConfig.class)
+        .run(
+            ctx -> {
+              var customizer = ctx.getBean(JsonRpcMethodHandlerCustomizer.class);
+              var config = mock(JsonRpcMethodHandlerConfig.class);
+              customizer.customize(config);
+              verify(config).interceptor(any(JsonRpcObservationInterceptor.class));
+            });
   }
 
   @Test
