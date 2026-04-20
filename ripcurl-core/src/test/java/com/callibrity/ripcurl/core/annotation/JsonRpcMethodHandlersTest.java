@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInvocation;
+import org.jwcarman.methodical.MethodInvocation;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.StringNode;
 
@@ -74,9 +73,7 @@ class JsonRpcMethodHandlersTest {
   void methodAndBeanAccessorsExposeSource() throws Exception {
     var bean = new NamedService();
     var method = NamedService.class.getMethod("withExplicitName");
-    var handler =
-        JsonRpcMethodHandlers.build(
-            bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of());
+    var handler = JsonRpcMethodHandlers.build(bean, method, MAPPER, List.of());
     assertThat(handler.bean()).isSameAs(bean);
     assertThat(handler.method()).isSameAs(method);
   }
@@ -98,8 +95,7 @@ class JsonRpcMethodHandlersTest {
           seenBeans.add(config.bean());
         };
 
-    JsonRpcMethodHandlers.build(
-        bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of(customizer));
+    JsonRpcMethodHandlers.build(bean, method, MAPPER, List.of(customizer));
 
     assertThat(seenNames).containsExactly("custom.name");
     assertThat(seenMethods).containsExactly(method);
@@ -114,9 +110,7 @@ class JsonRpcMethodHandlersTest {
     JsonRpcMethodHandlerCustomizer customizer =
         config -> config.interceptor(invocation -> intercept(count, invocation));
 
-    var handler =
-        JsonRpcMethodHandlers.build(
-            bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of(customizer));
+    var handler = JsonRpcMethodHandlers.build(bean, method, MAPPER, List.of(customizer));
     handler.call(new JsonRpcCall("2.0", "custom.name", null, StringNode.valueOf("1")));
 
     assertThat(count).hasValue(1);
@@ -143,9 +137,7 @@ class JsonRpcMethodHandlersTest {
                       });
                 });
 
-    var handler =
-        JsonRpcMethodHandlers.build(
-            bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of(customizer));
+    var handler = JsonRpcMethodHandlers.build(bean, method, MAPPER, List.of(customizer));
     var response =
         handler.call(
             new JsonRpcCall("2.0", "echo", MAPPER.createObjectNode(), StringNode.valueOf("1")));
@@ -162,9 +154,7 @@ class JsonRpcMethodHandlersTest {
     // dispatcher discards this result for notifications; we only verify the id-derivation branch.
     var bean = new NamedService();
     var method = NamedService.class.getMethod("withExplicitName");
-    var handler =
-        JsonRpcMethodHandlers.build(
-            bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of());
+    var handler = JsonRpcMethodHandlers.build(bean, method, MAPPER, List.of());
 
     JsonRpcResult result = handler.call(new JsonRpcNotification("2.0", "custom.name", null));
 
@@ -183,8 +173,7 @@ class JsonRpcMethodHandlersTest {
     try {
       var bean = beanClass.getDeclaredConstructor().newInstance();
       Method method = findMethod(bean, methodName);
-      return JsonRpcMethodHandlers.build(
-          bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of());
+      return JsonRpcMethodHandlers.build(bean, method, MAPPER, List.of());
     } catch (ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }

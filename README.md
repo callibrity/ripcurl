@@ -19,7 +19,7 @@ Add the starter:
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-    <version>2.8.0</version>
+    <version>2.9.0</version>
 </dependency>
 ```
 
@@ -90,7 +90,7 @@ A `ParameterResolver<A>` is a factory: its `bind(ParameterInfo)` returns an `Opt
 
 Customizer-contributed resolvers slot between two built-in resolvers that RipCurl always applies: `JsonRpcParamsResolver` runs first (handling `@JsonRpcParams` parameters), then customizer resolvers in bean order (honoring `@Order`), then `Jackson3ParameterResolver` as the name/index catch-all. Methodical's `@Argument` tail runs last.
 
-Customizers are the only extension path in 2.8.0. The 2.7.0 bean-level autowiring of `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` is gone — any such beans on the classpath no longer contribute to RipCurl's pipeline.
+Customizers are the only extension path. The pre-2.8.0 bean-level autowiring of `List<ParameterResolver<? super JsonNode>>` and `List<MethodInterceptor<? super JsonNode>>` is gone — any such beans on the classpath no longer contribute to RipCurl's pipeline.
 
 ## Message Types
 
@@ -238,7 +238,7 @@ If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied t
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-jakarta-validation</artifactId>
-    <version>2.8.0</version>
+    <version>2.9.0</version>
 </dependency>
 ```
 
@@ -261,4 +261,4 @@ If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied t
 
 - Java 25+
 - Spring Boot 4.x
-- [Methodical](https://github.com/jwcarman/methodical) 0.7.0+ (transitive)
+- [Methodical](https://github.com/jwcarman/methodical) 0.8.0+ (transitive)

@@ -30,8 +30,6 @@ import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -40,7 +38,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.util.ClassUtils;
 import tools.jackson.databind.ObjectMapper;
 
-@AutoConfiguration(after = MethodicalAutoConfiguration.class)
+@AutoConfiguration
 public class RipCurlAutoConfiguration {
 
   /**
@@ -55,7 +53,6 @@ public class RipCurlAutoConfiguration {
   public List<JsonRpcMethodHandler> jsonRpcMethodHandlers(
       ConfigurableListableBeanFactory beanFactory,
       ObjectMapper mapper,
-      MethodInvokerFactory invokerFactory,
       List<JsonRpcMethodHandlerCustomizer> customizers) {
     return Arrays.stream(beanFactory.getBeanNamesForType(Object.class, false, false))
         .filter(name -> hostsJsonRpcMethod(beanFactory, name))
@@ -65,10 +62,7 @@ public class RipCurlAutoConfiguration {
               return MethodUtils.getMethodsListWithAnnotation(
                       AopUtils.getTargetClass(bean), JsonRpcMethod.class)
                   .stream()
-                  .map(
-                      method ->
-                          JsonRpcMethodHandlers.build(
-                              bean, method, mapper, invokerFactory, customizers));
+                  .map(method -> JsonRpcMethodHandlers.build(bean, method, mapper, customizers));
             })
         .toList();
   }

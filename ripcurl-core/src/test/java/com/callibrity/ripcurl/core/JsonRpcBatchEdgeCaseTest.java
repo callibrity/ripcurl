@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 
@@ -92,10 +91,9 @@ class JsonRpcBatchEdgeCaseTest {
   }
 
   private JsonRpcDispatcher createDispatcher(Object service) {
-    var invokerFactory = new DefaultMethodInvokerFactory();
     List<JsonRpcMethodHandler> handlers =
         MethodUtils.getMethodsListWithAnnotation(service.getClass(), JsonRpcMethod.class).stream()
-            .map(m -> JsonRpcMethodHandlers.build(service, m, MAPPER, invokerFactory, List.of()))
+            .map(m -> JsonRpcMethodHandlers.build(service, m, MAPPER, List.of()))
             .toList();
     return new DefaultJsonRpcDispatcher(handlers);
   }

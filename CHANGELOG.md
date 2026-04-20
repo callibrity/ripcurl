@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.9.0
+
+### Breaking changes
+
+- **Bumped methodical `0.7.0` → `0.8.0`.** Methodical shifted to a fluent builder: `MethodInvoker.builder(method, target, type).resolver(...).interceptor(...).build()` replaces the old `MethodInvokerFactory.create(...)` + `Consumer<MethodInvokerConfig>` pattern. RipCurl's `JsonRpcMethodHandlers.build(...)` now takes four args instead of five (no more `MethodInvokerFactory` parameter) — callers wiring handlers manually outside of Spring auto-configuration must drop that argument.
+- **Package flatten.** Methodical collapsed `org.jwcarman.methodical.param.*` and `org.jwcarman.methodical.intercept.*` into `org.jwcarman.methodical.*`. Imports of `ParameterResolver`, `ParameterInfo`, `ParameterResolver.Binding`, `MethodInterceptor`, and `MethodInvocation` all move to the root package. Pure source break; no behavior change.
+- **`methodical-autoconfigure` dependency removed.** Methodical no longer ships an autoconfigure module or a Spring Boot starter — it's a plain library now. RipCurl's own autoconfigs own their Spring wiring end-to-end:
+  - `RipCurlAutoConfiguration` drops `@AutoConfiguration(after = MethodicalAutoConfiguration.class)` (no such class exists anymore) and no longer autowires a `MethodInvokerFactory` bean.
+  - `RipCurlJakartaValidationAutoConfiguration` now constructs its own `JakartaValidationInterceptor` from an autowired `Validator` bean, gated `@ConditionalOnBean(Validator.class)` + `@ConditionalOnClass(JakartaValidationInterceptor.class)`. Previously it picked up the interceptor bean registered by Methodical's removed autoconfigure.
+
+### Changed
+
+- **`JsonRpcMethodHandlers.build(...)` uses the fluent builder internally.** Construction reads top-to-bottom: `JsonRpcParamsResolver` → customizer resolvers → `Jackson3ParameterResolver` → customizer interceptors, then `build()`. Same chain semantics as 2.8.0; cleaner source.
+
+### Migration
+
+**Custom resolver imports:**
+```diff
+-import org.jwcarman.methodical.param.ParameterResolver;
+-import org.jwcarman.methodical.param.ParameterInfo;
+-import org.jwcarman.methodical.intercept.MethodInterceptor;
++import org.jwcarman.methodical.ParameterResolver;
++import org.jwcarman.methodical.ParameterInfo;
++import org.jwcarman.methodical.MethodInterceptor;
+```
+
+**Manual handler wiring (outside Spring auto-config):**
+```diff
+-JsonRpcMethodHandlers.build(bean, method, mapper, invokerFactory, customizers);
++JsonRpcMethodHandlers.build(bean, method, mapper, customizers);
+```
+
+Apps that only wire RipCurl via `@JsonRpcMethod` on beans need no code changes; the customizer SPI and `@JsonRpcParams` behavior are unchanged.
+
 ## 2.8.0
 
 ### Breaking changes

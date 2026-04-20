@@ -27,7 +27,6 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.NullNode;
@@ -63,10 +62,9 @@ class JsonRpcComplianceTest {
   @BeforeEach
   void setUp() {
     var bean = new TestService();
-    var invokerFactory = new DefaultMethodInvokerFactory();
     List<JsonRpcMethodHandler> handlers =
         MethodUtils.getMethodsListWithAnnotation(bean.getClass(), JsonRpcMethod.class).stream()
-            .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, invokerFactory, List.of()))
+            .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, List.of()))
             .toList();
     dispatcher = new DefaultJsonRpcDispatcher(handlers);
   }

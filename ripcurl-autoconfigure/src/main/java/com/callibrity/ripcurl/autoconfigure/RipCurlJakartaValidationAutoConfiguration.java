@@ -19,7 +19,7 @@ import com.callibrity.ripcurl.autoconfigure.aot.RipCurlJakartaValidationRuntimeH
 import com.callibrity.ripcurl.jakarta.ConstraintViolationExceptionTranslator;
 import com.callibrity.ripcurl.jakarta.JakartaValidationCustomizer;
 import jakarta.validation.ConstraintViolationException;
-import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
+import jakarta.validation.Validator;
 import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -29,27 +29,27 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
 /**
- * Wires two pieces of the Jakarta validation story:
+ * Wires RipCurl's Jakarta validation integration end-to-end:
  *
  * <ul>
  *   <li>a {@link ConstraintViolationExceptionTranslator} that maps {@link
  *       ConstraintViolationException} to {@code -32602 Invalid params} with per-violation detail in
- *       the response's {@code data} field; and
- *   <li>a {@link JakartaValidationCustomizer} that attaches Methodical's {@link
- *       JakartaValidationInterceptor} to every {@code @JsonRpcMethod} handler so the validation
- *       actually runs on each dispatch.
+ *       the response's {@code data} field;
+ *   <li>a {@link JakartaValidationInterceptor} constructed from the app's {@code Validator} bean —
+ *       owned by this autoconfig (no upstream autoconfigure module is required); and
+ *   <li>a {@link JakartaValidationCustomizer} that attaches the interceptor to every
+ *       {@code @JsonRpcMethod} handler so validation runs on each dispatch.
  * </ul>
  *
- * <p>Triggers only when {@link ConstraintViolationException} (jakarta.validation-api) and {@link
- * ConstraintViolationExceptionTranslator} (ripcurl-jakarta-validation, an optional dependency of
- * this module) are both on the classpath, and a {@link JakartaValidationInterceptor} bean is in the
- * context (contributed by Methodical's {@code JakartaValidationAutoConfiguration} when a {@code
- * Validator} bean is available).
+ * <p>Triggers only when {@link ConstraintViolationException}, {@link
+ * ConstraintViolationExceptionTranslator}, and {@link JakartaValidationInterceptor} are all on the
+ * classpath, and a {@link Validator} bean is in the context.
  */
-@AutoConfiguration(before = MethodicalAutoConfiguration.class)
+@AutoConfiguration
 @ConditionalOnClass({
   ConstraintViolationException.class,
-  ConstraintViolationExceptionTranslator.class
+  ConstraintViolationExceptionTranslator.class,
+  JakartaValidationInterceptor.class
 })
 @ImportRuntimeHints(RipCurlJakartaValidationRuntimeHints.class)
 public class RipCurlJakartaValidationAutoConfiguration {
@@ -58,6 +58,13 @@ public class RipCurlJakartaValidationAutoConfiguration {
   @ConditionalOnMissingBean
   public ConstraintViolationExceptionTranslator constraintViolationExceptionTranslator() {
     return new ConstraintViolationExceptionTranslator();
+  }
+
+  @Bean
+  @ConditionalOnBean(Validator.class)
+  @ConditionalOnMissingBean
+  public JakartaValidationInterceptor jakartaValidationInterceptor(Validator validator) {
+    return new JakartaValidationInterceptor(validator);
   }
 
   @Bean

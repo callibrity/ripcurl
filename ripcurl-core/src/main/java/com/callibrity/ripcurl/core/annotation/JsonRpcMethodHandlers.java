@@ -22,11 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jwcarman.methodical.MethodInterceptor;
 import org.jwcarman.methodical.MethodInvoker;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
+import org.jwcarman.methodical.ParameterResolver;
 import org.jwcarman.methodical.jackson3.Jackson3ParameterResolver;
-import org.jwcarman.methodical.param.ParameterResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -63,7 +62,6 @@ public final class JsonRpcMethodHandlers {
       Object bean,
       Method method,
       ObjectMapper mapper,
-      MethodInvokerFactory invokerFactory,
       List<JsonRpcMethodHandlerCustomizer> customizers) {
     var annotation = method.getAnnotation(JsonRpcMethod.class);
     String className = ClassUtils.getSimpleName(bean);
@@ -75,22 +73,13 @@ public final class JsonRpcMethodHandlers {
     var config = new MutableConfig(name, method, bean);
     customizers.forEach(c -> c.customize(config));
 
-    var paramsResolver = new JsonRpcParamsResolver(mapper);
-    var jacksonResolver = new Jackson3ParameterResolver(mapper);
-    List<ParameterResolver<? super JsonNode>> userResolvers = config.freezeResolvers();
-    List<MethodInterceptor<? super JsonNode>> interceptors = config.freezeInterceptors();
-
-    MethodInvoker<JsonNode> invoker =
-        invokerFactory.create(
-            method,
-            bean,
-            JsonNode.class,
-            cfg -> {
-              cfg.resolver(paramsResolver);
-              userResolvers.forEach(cfg::resolver);
-              cfg.resolver(jacksonResolver);
-              interceptors.forEach(cfg::interceptor);
-            });
+    var builder =
+        MethodInvoker.<JsonNode>builder(method, bean, JsonNode.class)
+            .resolver(new JsonRpcParamsResolver(mapper));
+    config.freezeResolvers().forEach(builder::resolver);
+    builder.resolver(new Jackson3ParameterResolver(mapper));
+    config.freezeInterceptors().forEach(builder::interceptor);
+    MethodInvoker<JsonNode> invoker = builder.build();
 
     log.debug("Built @JsonRpcMethod handler '{}' on {}.{}", name, className, methodName);
     return new JsonRpcMethodHandler(name, method, bean, invoker, mapper);

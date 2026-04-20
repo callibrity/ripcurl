@@ -19,8 +19,8 @@ package com.callibrity.ripcurl.core.annotation;
  * Extension point for per-handler customization. Every {@link JsonRpcMethodHandlerCustomizer}
  * registered as a Spring bean is invoked once per {@code @JsonRpcMethod} handler during
  * construction with a {@link JsonRpcMethodHandlerConfig} describing that handler. Customizers may
- * attach {@link org.jwcarman.methodical.intercept.MethodInterceptor MethodInterceptors} scoped to
- * that specific handler — for example, to bake the handler's method name into a metric tag at
+ * attach {@link org.jwcarman.methodical.MethodInterceptor MethodInterceptors} scoped to that
+ * specific handler — for example, to bake the handler's method name into a metric tag at
  * construction time instead of re-introspecting the method on every invocation.
  */
 @FunctionalInterface

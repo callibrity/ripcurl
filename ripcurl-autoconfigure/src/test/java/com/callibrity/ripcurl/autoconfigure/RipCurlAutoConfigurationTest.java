@@ -34,9 +34,6 @@ import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.autoconfigure.Jackson3AutoConfiguration;
-import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -51,10 +48,7 @@ class RipCurlAutoConfigurationTest {
       new ApplicationContextRunner()
           .withConfiguration(
               AutoConfigurations.of(
-                  JacksonAutoConfiguration.class,
-                  Jackson3AutoConfiguration.class,
-                  MethodicalAutoConfiguration.class,
-                  RipCurlAutoConfiguration.class));
+                  JacksonAutoConfiguration.class, RipCurlAutoConfiguration.class));
 
   public static class TestService {
     @JsonRpcMethod("test.hello")
@@ -139,8 +133,7 @@ class RipCurlAutoConfigurationTest {
 
     var handlers =
         new RipCurlAutoConfiguration()
-            .jsonRpcMethodHandlers(
-                beanFactory, new ObjectMapper(), new DefaultMethodInvokerFactory(), List.of());
+            .jsonRpcMethodHandlers(beanFactory, new ObjectMapper(), List.of());
 
     assertThat(handlers).isEmpty();
   }
@@ -194,8 +187,6 @@ class RipCurlAutoConfigurationTest {
         .withConfiguration(
             AutoConfigurations.of(
                 JacksonAutoConfiguration.class,
-                Jackson3AutoConfiguration.class,
-                MethodicalAutoConfiguration.class,
                 RipCurlAutoConfiguration.class,
                 RipCurlJakartaValidationAutoConfiguration.class))
         .run(

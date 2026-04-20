@@ -16,8 +16,8 @@
 package com.callibrity.ripcurl.core.annotation;
 
 import java.lang.reflect.Method;
-import org.jwcarman.methodical.intercept.MethodInterceptor;
-import org.jwcarman.methodical.param.ParameterResolver;
+import org.jwcarman.methodical.MethodInterceptor;
+import org.jwcarman.methodical.ParameterResolver;
 import tools.jackson.databind.JsonNode;
 
 /**

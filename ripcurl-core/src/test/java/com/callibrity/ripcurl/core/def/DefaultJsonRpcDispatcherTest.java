@@ -30,8 +30,6 @@ import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.MethodInvokerFactory;
-import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.NullNode;
@@ -40,7 +38,6 @@ import tools.jackson.databind.node.StringNode;
 class DefaultJsonRpcDispatcherTest {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final MethodInvokerFactory INVOKER_FACTORY = new DefaultMethodInvokerFactory();
 
   public static class HelloService {
     @JsonRpcMethod
@@ -77,7 +74,7 @@ class DefaultJsonRpcDispatcherTest {
 
   private static List<JsonRpcMethodHandler> handlersFor(Object bean) {
     return MethodUtils.getMethodsListWithAnnotation(bean.getClass(), JsonRpcMethod.class).stream()
-        .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, INVOKER_FACTORY, List.of()))
+        .map(m -> JsonRpcMethodHandlers.build(bean, m, MAPPER, List.of()))
         .toList();
   }
 
