@@ -19,15 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.callibrity.ripcurl.core.JsonRpcCall;
+import com.callibrity.ripcurl.core.JsonRpcDispatcher;
 import com.callibrity.ripcurl.core.JsonRpcError;
 import com.callibrity.ripcurl.core.JsonRpcNotification;
 import com.callibrity.ripcurl.core.JsonRpcProtocol;
+import com.callibrity.ripcurl.core.JsonRpcRequest;
 import com.callibrity.ripcurl.core.JsonRpcResult;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethod;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandler;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlers;
 import com.callibrity.ripcurl.core.exception.JsonRpcException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -335,6 +338,49 @@ class DefaultJsonRpcDispatcherTest {
     var error = (JsonRpcError) response;
     assertThat(error.error().code()).isEqualTo(JsonRpcProtocol.INVALID_PARAMS);
     assertThat(error.error().message()).isEqualTo("name must not be blank");
+  }
+
+  @Test
+  void bindsCurrentRequestScopedValueDuringCallDispatch() {
+    var seen = new AtomicReference<JsonRpcRequest>();
+    var service =
+        new ScopedValueCapturingService(() -> seen.set(JsonRpcDispatcher.CURRENT_REQUEST.get()));
+    var dispatcher = new DefaultJsonRpcDispatcher(handlersFor(service));
+    var call =
+        new JsonRpcCall(
+            "2.0", "ScopedValueCapturingService.capture", null, StringNode.valueOf("c1"));
+
+    dispatcher.dispatch(call);
+
+    assertThat(seen.get()).isSameAs(call);
+    assertThat(JsonRpcDispatcher.CURRENT_REQUEST.isBound()).isFalse();
+  }
+
+  @Test
+  void bindsCurrentRequestScopedValueDuringNotificationDispatch() {
+    var seen = new AtomicReference<JsonRpcRequest>();
+    var service =
+        new ScopedValueCapturingService(() -> seen.set(JsonRpcDispatcher.CURRENT_REQUEST.get()));
+    var dispatcher = new DefaultJsonRpcDispatcher(handlersFor(service));
+    var notification = new JsonRpcNotification("2.0", "ScopedValueCapturingService.capture", null);
+
+    dispatcher.dispatch(notification);
+
+    assertThat(seen.get()).isSameAs(notification);
+    assertThat(JsonRpcDispatcher.CURRENT_REQUEST.isBound()).isFalse();
+  }
+
+  public static class ScopedValueCapturingService {
+    private final Runnable capture;
+
+    public ScopedValueCapturingService(Runnable capture) {
+      this.capture = capture;
+    }
+
+    @JsonRpcMethod
+    public void capture() {
+      capture.run();
+    }
   }
 
   @Test

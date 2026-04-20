@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`JsonRpcDispatcher.CURRENT_REQUEST`** — public `ScopedValue<JsonRpcRequest>` bound by `DefaultJsonRpcDispatcher` for the duration of each call/notification dispatch. Method interceptors and downstream code can read the full envelope — method name, params, `id` (via `JsonRpcCall` pattern match), `jsonrpc` version — even though the methodical `MethodInvocation` argument is only the params `JsonNode`. Unbound outside a dispatch scope; guard with `ScopedValue#isBound()` before calling `get()`. Enables downstream observability modules (e.g. mocapi-o11y) to emit JSON-RPC span attributes like `jsonrpc.request.id` without threading the envelope through every interceptor signature.
+
 ## 2.9.0
 
 ### Breaking changes

@@ -87,7 +87,8 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
                       new JsonRpcException(
                           JsonRpcProtocol.METHOD_NOT_FOUND,
                           String.format("JSON-RPC method \"%s\" not found.", call.method())));
-      return method.call(call);
+      return ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, call)
+          .call(() -> method.call(call));
     } catch (Exception e) {
       JsonRpcErrorDetail detail = translators.translate(e);
       return new JsonRpcError(detail, call.id());
@@ -99,7 +100,8 @@ public class DefaultJsonRpcDispatcher implements JsonRpcDispatcher {
       validate(notification);
       var method = methods.get(notification.method());
       if (method != null) {
-        method.call(notification);
+        ScopedValue.where(JsonRpcDispatcher.CURRENT_REQUEST, notification)
+            .run(() -> method.call(notification));
       }
     } catch (Exception e) {
       log.warn("Notification '{}' failed: {}", notification.method(), e.getMessage(), e);

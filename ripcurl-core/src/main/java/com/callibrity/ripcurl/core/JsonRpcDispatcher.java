@@ -23,6 +23,24 @@ import java.util.concurrent.Future;
 public interface JsonRpcDispatcher {
 
   /**
+   * The JSON-RPC request currently being dispatched on this thread, if any. Implementations bind
+   * this before invoking the matched method handler and unbind after the response is built. Method
+   * interceptors and downstream code can read it to access the full envelope (method name, params,
+   * id for calls, jsonrpc version). Returns an unbound {@link ScopedValue} outside a dispatch scope
+   * — guard with {@link ScopedValue#isBound()} before calling {@link ScopedValue#get()}.
+   *
+   * <p>Use a pattern match when you need the id:
+   *
+   * <pre>{@code
+   * if (JsonRpcDispatcher.CURRENT_REQUEST.isBound()
+   *     && JsonRpcDispatcher.CURRENT_REQUEST.get() instanceof JsonRpcCall call) {
+   *   record("jsonrpc.request.id", call.id());
+   * }
+   * }</pre>
+   */
+  ScopedValue<JsonRpcRequest> CURRENT_REQUEST = ScopedValue.newInstance();
+
+  /**
    * Dispatches a single JSON-RPC request. Returns null for notifications.
    *
    * @param request the JSON-RPC request (call or notification)
