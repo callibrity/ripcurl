@@ -34,10 +34,9 @@ import org.springframework.context.annotation.ImportRuntimeHints;
  * <ul>
  *   <li>a {@link ConstraintViolationExceptionTranslator} that maps {@link
  *       ConstraintViolationException} to {@code -32602 Invalid params} with per-violation detail in
- *       the response's {@code data} field;
- *   <li>a {@link JakartaValidationInterceptor} constructed from the app's {@code Validator} bean —
- *       owned by this autoconfig (no upstream autoconfigure module is required); and
- *   <li>a {@link JakartaValidationCustomizer} that attaches the interceptor to every
+ *       the response's {@code data} field; and
+ *   <li>a {@link JakartaValidationCustomizer} that wraps a {@link JakartaValidationInterceptor}
+ *       (constructed here from the app's {@code Validator} bean) and attaches it to every
  *       {@code @JsonRpcMethod} handler so validation runs on each dispatch.
  * </ul>
  *
@@ -63,15 +62,7 @@ public class RipCurlJakartaValidationAutoConfiguration {
   @Bean
   @ConditionalOnBean(Validator.class)
   @ConditionalOnMissingBean
-  public JakartaValidationInterceptor jakartaValidationInterceptor(Validator validator) {
-    return new JakartaValidationInterceptor(validator);
-  }
-
-  @Bean
-  @ConditionalOnBean(JakartaValidationInterceptor.class)
-  @ConditionalOnMissingBean
-  public JakartaValidationCustomizer jakartaValidationCustomizer(
-      JakartaValidationInterceptor interceptor) {
-    return new JakartaValidationCustomizer(interceptor);
+  public JakartaValidationCustomizer jakartaValidationCustomizer(Validator validator) {
+    return new JakartaValidationCustomizer(new JakartaValidationInterceptor(validator));
   }
 }

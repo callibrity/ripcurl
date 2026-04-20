@@ -21,10 +21,10 @@ import static org.mockito.Mockito.mock;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslator;
 import com.callibrity.ripcurl.jakarta.ConstraintViolationExceptionTranslator;
 import com.callibrity.ripcurl.jakarta.JakartaValidationCustomizer;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
-import org.jwcarman.methodical.jakarta.JakartaValidationInterceptor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -51,17 +51,17 @@ class RipCurlJakartaValidationAutoConfigurationTest {
   }
 
   @Test
-  void registers_the_customizer_when_a_JakartaValidationInterceptor_bean_is_present() {
-    // The customizer bean method is gated on @ConditionalOnBean(JakartaValidationInterceptor) so
-    // it only fires when Methodical's jakarta autoconfig (or the user) has contributed the
-    // interceptor. Provide one manually here via a small @Configuration.
+  void registers_the_customizer_when_a_Validator_bean_is_present() {
+    // The customizer bean method is gated on @ConditionalOnBean(Validator.class). When a Validator
+    // is in the context, RipCurl constructs the JakartaValidationInterceptor itself and wraps it
+    // in the customizer — no upstream autoconfigure module required.
     runner
-        .withUserConfiguration(ValidationInterceptorConfig.class)
+        .withUserConfiguration(ValidatorConfig.class)
         .run(context -> assertThat(context).hasSingleBean(JakartaValidationCustomizer.class));
   }
 
   @Test
-  void does_not_register_the_customizer_when_no_JakartaValidationInterceptor_bean_is_present() {
+  void does_not_register_the_customizer_when_no_Validator_bean_is_present() {
     runner.run(context -> assertThat(context).doesNotHaveBean(JakartaValidationCustomizer.class));
   }
 
@@ -87,14 +87,14 @@ class RipCurlJakartaValidationAutoConfigurationTest {
   }
 
   @Configuration(proxyBeanMethods = false)
-  static class ValidationInterceptorConfig {
+  static class ValidatorConfig {
 
     @Bean
-    JakartaValidationInterceptor jakartaValidationInterceptor() {
+    Validator validator() {
       // Mocked to avoid pulling a Jakarta validation provider (Hibernate Validator) onto the
-      // test classpath. The customizer wiring doesn't exercise the interceptor itself — only
-      // that it gets picked up as a bean and handed to the customizer constructor.
-      return mock(JakartaValidationInterceptor.class);
+      // test classpath. The customizer wiring doesn't exercise the validator itself — only that
+      // the presence of a Validator bean triggers the customizer registration.
+      return mock(Validator.class);
     }
   }
 }
