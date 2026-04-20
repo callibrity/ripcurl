@@ -96,7 +96,7 @@ public final class JsonRpcObservationInterceptor implements MethodInterceptor<Js
     }
 
     observation.start();
-    try (Observation.Scope ignored = observation.openScope()) {
+    try (var _ = observation.openScope()) {
       return invocation.proceed();
     } catch (RuntimeException e) {
       JsonRpcErrorDetail detail = translators.translate(e);
