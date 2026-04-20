@@ -19,19 +19,11 @@ Add the starter:
 <dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-spring-boot-starter</artifactId>
-    <version>2.7.0</version>
+    <version>2.8.0</version>
 </dependency>
 ```
 
-And the Jackson 3 resolver (included with Spring Boot 4):
-
-```xml
-<dependency>
-    <groupId>org.jwcarman.methodical</groupId>
-    <artifactId>methodical-jackson3</artifactId>
-    <version>${methodical.version}</version>
-</dependency>
-```
+That's it — Methodical (including the Jackson 3 parameter binder) comes in transitively.
 
 ## Defining Methods
 
@@ -82,10 +74,19 @@ JsonRpcMethodHandlerCustomizer timingCustomizer(MeterRegistry registry) {
 
 ```java
 @Bean
-JsonRpcMethodHandlerCustomizer tenantContextCustomizer() {
-    return config -> config.resolver(new TenantContextParameterResolver());
+JsonRpcMethodHandlerCustomizer tenantContextCustomizer(TenantContextLookup lookup) {
+    return config -> config.resolver(info -> {
+        if (!info.accepts(TenantContext.class)) {
+            return Optional.empty();
+        }
+        // Binding is per-parameter; anything derivable from ParameterInfo can be
+        // captured once here and reused on every dispatch.
+        return Optional.of(params -> lookup.current());
+    });
 }
 ```
+
+A `ParameterResolver<A>` is a factory: its `bind(ParameterInfo)` returns an `Optional<Binding<A>>`. A non-empty binding wins for that parameter slot, and its `resolve(root)` runs on every dispatch with the cached state captured at bind time.
 
 Customizer-contributed resolvers slot between two built-in resolvers that RipCurl always applies: `JsonRpcParamsResolver` runs first (handling `@JsonRpcParams` parameters), then customizer resolvers in bean order (honoring `@Order`), then `Jackson3ParameterResolver` as the name/index catch-all. Methodical's `@Argument` tail runs last.
 
@@ -223,11 +224,11 @@ throw new JsonRpcException(JsonRpcProtocol.INVALID_PARAMS, "Name is required");
 
 ## Method Invocation
 
-RipCurl uses [Methodical](https://github.com/jwcarman/methodical) for pluggable reflection-based parameter resolution. Custom `ParameterResolver<A>` beans are automatically picked up — register them as Spring beans with `@Order` to control priority.
+RipCurl uses [Methodical](https://github.com/jwcarman/methodical) for reflection-based parameter resolution. Under the hood each handler's invoker is built with a fixed resolver chain — `JsonRpcParamsResolver` → customizer-added resolvers → `Jackson3ParameterResolver` → Methodical's `@Argument` tail — assembled once at handler-construction time. See [Customizing Handlers](#customizing-handlers) for how to contribute your own resolvers.
 
 ## Jakarta Validation (optional)
 
-If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied to your `@JsonRpcMethod` parameters and return values, add the Methodical Jakarta Validation module alongside Spring Boot's validation starter, plus RipCurl's jakarta-validation module so violations surface as proper JSON-RPC errors:
+If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied to your `@JsonRpcMethod` parameters and return values, add Spring Boot's validation starter plus RipCurl's jakarta-validation module:
 
 ```xml
 <dependency>
@@ -235,18 +236,13 @@ If you want constraint validation (`@NotNull`, `@Min`, `@Valid`, etc.) applied t
     <artifactId>spring-boot-starter-validation</artifactId>
 </dependency>
 <dependency>
-    <groupId>org.jwcarman.methodical</groupId>
-    <artifactId>methodical-jakarta-validation</artifactId>
-    <version>${methodical.version}</version>
-</dependency>
-<dependency>
     <groupId>com.callibrity.ripcurl</groupId>
     <artifactId>ripcurl-jakarta-validation</artifactId>
-    <version>2.7.0</version>
+    <version>2.8.0</version>
 </dependency>
 ```
 
-Methodical's autoconfiguration wires the validator into the invocation pipeline. RipCurl's `ConstraintViolationExceptionTranslator` (auto-registered when `ripcurl-jakarta-validation` is on the classpath) translates the resulting `ConstraintViolationException` into a `-32602 Invalid params` JSON-RPC error, emitting per-violation detail as a `[{field, message}, ...]` array in the response's `data` field:
+`methodical-jakarta-validation` comes in transitively. Methodical's autoconfiguration wires the validator into a `MethodInterceptor`; RipCurl's `JakartaValidationCustomizer` (auto-registered when both the jakarta module and a `Validator` bean are on the classpath) attaches that interceptor to every `@JsonRpcMethod` handler. When a constraint is violated, `ConstraintViolationExceptionTranslator` turns the resulting `ConstraintViolationException` into a `-32602 Invalid params` JSON-RPC error, emitting per-violation detail as a `[{field, message}, ...]` array in the response's `data` field:
 
 ```json
 {
@@ -265,4 +261,4 @@ Methodical's autoconfiguration wires the validator into the invocation pipeline.
 
 - Java 25+
 - Spring Boot 4.x
-- [Methodical](https://github.com/jwcarman/methodical) 0.2.0+ with a JSON resolver module
+- [Methodical](https://github.com/jwcarman/methodical) 0.7.0+ (transitive)
