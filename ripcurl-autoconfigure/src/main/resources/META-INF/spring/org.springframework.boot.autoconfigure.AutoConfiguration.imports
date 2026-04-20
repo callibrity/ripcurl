@@ -1,2 +1,3 @@
 com.callibrity.ripcurl.autoconfigure.RipCurlAutoConfiguration
 com.callibrity.ripcurl.autoconfigure.RipCurlJakartaValidationAutoConfiguration
+com.callibrity.ripcurl.autoconfigure.RipCurlObservationAutoConfiguration

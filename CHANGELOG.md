@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`ripcurl-o11y` module.** Pure-library Micrometer Observation interceptor (`JsonRpcObservationInterceptor`) that wraps every `@JsonRpcMethod` dispatch in a per-call observation carrying OpenTelemetry JSON-RPC semantic-convention attributes (`rpc.system.name=jsonrpc`, `jsonrpc.protocol.version=2.0`, `jsonrpc.request.id` when the envelope has an id via `JsonRpcDispatcher.CURRENT_REQUEST`, `rpc.response.status_code` with `"OK"` on success or the numeric JSON-RPC error code on failure, `error.type` on failure). Observation name `jsonrpc.server` produces the histogram metric `jsonrpc.server.duration`; contextual (span) name is the JSON-RPC method. Activates via `ripcurl-autoconfigure`'s new `RipCurlObservationAutoConfiguration`, gated `@ConditionalOnClass(JsonRpcObservationInterceptor)` + `@ConditionalOnBean(ObservationRegistry)` — so users turn it on by adding `ripcurl-o11y` to their classpath alongside a Micrometer-producing stack (Spring Boot Actuator, tracing starter, etc.). Known gap: span kind is the default `INTERNAL`; upgrading to `SERVER` kind requires `ReceiverContext` plumbing and is deferred.
+
 ## 2.10.0
 
 ### Added
