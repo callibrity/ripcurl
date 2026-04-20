@@ -16,6 +16,10 @@
 package com.callibrity.ripcurl.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.callibrity.ripcurl.core.JsonRpcCall;
 import com.callibrity.ripcurl.core.JsonRpcDispatcher;
@@ -28,10 +32,13 @@ import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslator;
 import com.callibrity.ripcurl.core.def.IllegalArgumentExceptionTranslator;
 import com.callibrity.ripcurl.core.def.ParameterResolutionExceptionTranslator;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.jwcarman.methodical.autoconfigure.Jackson3AutoConfiguration;
 import org.jwcarman.methodical.autoconfigure.MethodicalAutoConfiguration;
+import org.jwcarman.methodical.def.DefaultMethodInvokerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -117,6 +124,25 @@ class RipCurlAutoConfigurationTest {
                   .singleElement()
                   .satisfies(m -> assertThat(m.getName()).isEqualTo("hello"));
             });
+  }
+
+  @Test
+  void beansWithUnresolvableDeclaredTypeAreSkipped() {
+    // Covers the `declaredType == null` branch in hostsJsonRpcMethod. Some beans
+    // (notably FactoryBeans under allowFactoryBeanInit=false) can't have their type
+    // resolved without instantiation; the scan must skip them silently rather than
+    // NPE or force instantiation.
+    var beanFactory = mock(ConfigurableListableBeanFactory.class);
+    when(beanFactory.getBeanNamesForType(eq(Object.class), anyBoolean(), anyBoolean()))
+        .thenReturn(new String[] {"unresolvable"});
+    when(beanFactory.getType("unresolvable", false)).thenReturn(null);
+
+    var handlers =
+        new RipCurlAutoConfiguration()
+            .jsonRpcMethodHandlers(
+                beanFactory, new ObjectMapper(), new DefaultMethodInvokerFactory(), List.of());
+
+    assertThat(handlers).isEmpty();
   }
 
   @Test

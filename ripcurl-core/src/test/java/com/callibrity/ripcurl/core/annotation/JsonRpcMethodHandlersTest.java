@@ -82,6 +82,31 @@ class JsonRpcMethodHandlersTest {
   }
 
   @Test
+  void customizerSeesHandlerMetadataOnTheConfig() throws Exception {
+    // The config passed to each customizer exposes the handler's name, method, and bean so the
+    // customizer can bake per-handler state (e.g., metric tags) into the interceptor at
+    // construction time.
+    var bean = new NamedService();
+    var method = NamedService.class.getMethod("withExplicitName");
+    var seenNames = new ArrayList<String>();
+    var seenMethods = new ArrayList<Method>();
+    var seenBeans = new ArrayList<Object>();
+    JsonRpcMethodHandlerCustomizer customizer =
+        config -> {
+          seenNames.add(config.name());
+          seenMethods.add(config.method());
+          seenBeans.add(config.bean());
+        };
+
+    JsonRpcMethodHandlers.build(
+        bean, method, MAPPER, new DefaultMethodInvokerFactory(), List.of(customizer));
+
+    assertThat(seenNames).containsExactly("custom.name");
+    assertThat(seenMethods).containsExactly(method);
+    assertThat(seenBeans).containsExactly(bean);
+  }
+
+  @Test
   void customizerCanAttachInterceptorScopedToThisHandler() throws Exception {
     var bean = new NamedService();
     var method = NamedService.class.getMethod("withExplicitName");
