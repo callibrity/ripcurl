@@ -17,11 +17,14 @@ package com.callibrity.ripcurl.autoconfigure;
 
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
+import com.callibrity.ripcurl.o11y.DefaultJsonRpcObservationCustomizer;
+import com.callibrity.ripcurl.o11y.JsonRpcObservationCustomizer;
 import com.callibrity.ripcurl.o11y.JsonRpcObservationInterceptor;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 /**
@@ -32,6 +35,12 @@ import org.springframework.context.annotation.Bean;
  * the context — Spring Boot auto-creates a registry whenever Actuator or any Micrometer Observation
  * autoconfiguration is present, so this autoconfig lights up automatically when paired with a
  * metrics or tracing stack.
+ *
+ * <p>The default backs off when the application registers its own {@link
+ * JsonRpcObservationCustomizer} bean — the seam for frameworks that observe JSON-RPC dispatch under
+ * a more specific semantic convention (a domain protocol layered over JSON-RPC) and therefore own
+ * the per-dispatch observation themselves. One observation per dispatch, owned by the most specific
+ * layer.
  */
 @AutoConfiguration(
     after = RipCurlAutoConfiguration.class,
@@ -42,9 +51,9 @@ import org.springframework.context.annotation.Bean;
 public class RipCurlObservationAutoConfiguration {
 
   @Bean
-  public JsonRpcMethodHandlerCustomizer jsonRpcObservationCustomizer(
+  @ConditionalOnMissingBean(JsonRpcObservationCustomizer.class)
+  public JsonRpcObservationCustomizer jsonRpcObservationCustomizer(
       ObservationRegistry registry, JsonRpcExceptionTranslatorRegistry translators) {
-    return config ->
-        config.interceptor(new JsonRpcObservationInterceptor(registry, translators, config.name()));
+    return new DefaultJsonRpcObservationCustomizer(registry, translators);
   }
 }

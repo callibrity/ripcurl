@@ -109,4 +109,13 @@ public final class JsonRpcObservationInterceptor implements MethodInterceptor<Js
       observation.stop();
     }
   }
+
+  @Override
+  public String toString() {
+    return "Records Micrometer '"
+        + OBSERVATION_NAME
+        + "' observations (OpenTelemetry JSON-RPC semconv) for method '"
+        + jsonRpcMethod
+        + "'";
+  }
 }

@@ -24,6 +24,8 @@ import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerConfig;
 import com.callibrity.ripcurl.core.annotation.JsonRpcMethodHandlerCustomizer;
 import com.callibrity.ripcurl.core.def.DefaultJsonRpcExceptionTranslatorRegistry;
 import com.callibrity.ripcurl.core.spi.JsonRpcExceptionTranslatorRegistry;
+import com.callibrity.ripcurl.o11y.DefaultJsonRpcObservationCustomizer;
+import com.callibrity.ripcurl.o11y.JsonRpcObservationCustomizer;
 import com.callibrity.ripcurl.o11y.JsonRpcObservationInterceptor;
 import io.micrometer.observation.ObservationRegistry;
 import java.util.List;
@@ -90,6 +92,38 @@ class RipCurlObservationAutoConfigurationTest {
         .withClassLoader(new FilteredClassLoader(JsonRpcObservationInterceptor.class))
         .withUserConfiguration(RequiredBeansConfig.class)
         .run(ctx -> assertThat(ctx).doesNotHaveBean(JsonRpcMethodHandlerCustomizer.class));
+  }
+
+  @Test
+  void backs_off_when_the_application_provides_its_own_JsonRpcObservationCustomizer() {
+    runner
+        .withUserConfiguration(RequiredBeansConfig.class, CustomObservationCustomizerConfig.class)
+        .run(
+            ctx -> {
+              assertThat(ctx).hasSingleBean(JsonRpcObservationCustomizer.class);
+              assertThat(ctx).hasBean("customObservationCustomizer");
+              assertThat(ctx).doesNotHaveBean("jsonRpcObservationCustomizer");
+            });
+  }
+
+  @Test
+  void the_default_customizer_is_the_DefaultJsonRpcObservationCustomizer() {
+    runner
+        .withUserConfiguration(RequiredBeansConfig.class)
+        .run(
+            ctx ->
+                assertThat(ctx.getBean(JsonRpcObservationCustomizer.class))
+                    .isInstanceOf(DefaultJsonRpcObservationCustomizer.class));
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  static class CustomObservationCustomizerConfig {
+    @Bean
+    JsonRpcObservationCustomizer customObservationCustomizer() {
+      return config -> {
+        // Attaches nothing — stands in for a framework-supplied specialized observation.
+      };
+    }
   }
 
   @Configuration(proxyBeanMethods = false)

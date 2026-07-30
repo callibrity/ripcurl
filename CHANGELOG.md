@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.12.0 (unreleased)
+
+### Added
+
+- **Replaceable observation owner: `JsonRpcObservationCustomizer`.** The customizer that attaches the per-dispatch observation is now a named type in `ripcurl-o11y` (`JsonRpcObservationCustomizer extends JsonRpcMethodHandlerCustomizer`), with the previous behavior moved into `DefaultJsonRpcObservationCustomizer`. `RipCurlObservationAutoConfiguration` registers the default `@ConditionalOnMissingBean(JsonRpcObservationCustomizer.class)`, so an application or framework that observes JSON-RPC dispatch under a more specific semantic convention (a domain protocol layered over JSON-RPC — e.g. mocapi's MCP `mcp.server.operation`) registers its own bean of this type and the default backs off, standard Spring Boot semantics. One observation per dispatch, owned by the most specific layer, instead of two nested observations over the same interval. Registering additional plain `JsonRpcMethodHandlerCustomizer` beans is unaffected.
+- `JsonRpcObservationInterceptor.toString()` describing its role, for handler-construction logs.
+
 ## 2.11.0
 
 ### Added
