@@ -153,12 +153,10 @@ class JsonRpcObservationInterceptorTest {
 
   @Test
   void toString_describes_the_observation_and_method() {
-    var interceptor = new JsonRpcObservationInterceptor(registry, translators, "tools/list");
-
     org.assertj.core.api.Assertions.assertThat(interceptor)
         .hasToString(
             "Records Micrometer 'jsonrpc.server' observations"
-                + " (OpenTelemetry JSON-RPC semconv) for method 'tools/list'");
+                + " (OpenTelemetry JSON-RPC semconv) for method 'tools/call'");
   }
 
   private static MethodInvocation<JsonNode> invocationReturning(Object result) {
